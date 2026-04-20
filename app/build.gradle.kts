@@ -16,6 +16,22 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("SIGNING_KEYSTORE_PATH")
+            if (!keystorePath.isNullOrBlank()) {
+                val f = file(keystorePath)
+                if (f.exists()) {
+                    storeFile = f
+                    storePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD") ?: ""
+                    keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "pixel-pilot"
+                    keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: ""
+                    storeType = "pkcs12"
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -23,6 +39,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val sc = signingConfigs.getByName("release")
+            if (sc.storeFile != null) {
+                signingConfig = sc
+            }
         }
     }
 

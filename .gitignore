@@ -12,4 +12,7 @@ local.properties
 *.aab
 *.keystore
 *.jks
+*.p12
+*.pem
 /keystore.properties
+/keystore/

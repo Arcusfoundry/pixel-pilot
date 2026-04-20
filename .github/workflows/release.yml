@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (must already exist on origin)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+        run: |
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_B64" | base64 -d > keystore/release.p12
+          if [ ! -s keystore/release.p12 ]; then
+            echo "::error::Decoded keystore is empty. Check SIGNING_KEYSTORE_B64 secret."
+            exit 1
+          fi
+
+      - name: Generate Gradle wrapper
+        run: gradle wrapper
+
+      - name: Build signed release APK
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ github.workspace }}/keystore/release.p12
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f keystore/release.p12
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::No release APK found. Check build output above."
+            exit 1
+          fi
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          NAME="pixel-pilot-${TAG}.apk"
+          cp "$APK" "$NAME"
+          echo "path=$NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.apk.outputs.tag }}
+          name: Pixel Pilot ${{ steps.apk.outputs.tag }}
+          files: ${{ steps.apk.outputs.path }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Pixel Pilot ${{ steps.apk.outputs.tag }}
+
+            Install via [Obtainium](https://obtainium.imranr.dev/) by pointing at `Arcusfoundry/pixel-pilot`, or download the APK below and install directly.
+
+            ### Requirements
+            - Android 13 (API 33) or newer
+            - Works on GrapheneOS and stock Android
+
+            _Built because nothing better existed. Provided as-is._
