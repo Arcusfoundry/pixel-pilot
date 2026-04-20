@@ -69,6 +69,22 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Builds a RenderParams snapshot from the current in-memory state. Safe to
+     * call from the UI thread on every recomposition; no prefs IO.
+     */
+    fun renderParams(): com.arcusfoundry.labs.pixelpilot.render.RenderParams {
+        val tintMode = when (tintKind) {
+            "static" -> com.arcusfoundry.labs.pixelpilot.render.TintMode.Static(tintColor)
+            "rainbow" -> com.arcusfoundry.labs.pixelpilot.render.TintMode.Rainbow(rainbowCycleSeconds)
+            else -> com.arcusfoundry.labs.pixelpilot.render.TintMode.None
+        }
+        return com.arcusfoundry.labs.pixelpilot.render.RenderParams(
+            speed = speed, scale = scale, dim = dim,
+            tint = tintMode, tintStrength = tintStrength
+        )
+    }
+
     fun updateSpeed(v: Float) { prefs.speed = v }
     fun updateScale(v: Float) { prefs.scale = v }
     fun updateDim(v: Float) { prefs.dim = v }

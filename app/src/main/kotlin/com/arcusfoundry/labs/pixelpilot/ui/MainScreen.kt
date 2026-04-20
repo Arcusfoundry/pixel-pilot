@@ -42,6 +42,9 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.AnimationPicker
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
+import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String) {
     Animations("Animations"),
@@ -61,14 +64,35 @@ fun MainScreen(
     val currentSource = viewModel.source
     val currentLabel = currentSourceLabel(currentSource)
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp)
-        ) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.Transparent
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            WallpaperPreviewSurface(
+                source = currentSource,
+                params = viewModel.renderParams(),
+                modifier = Modifier.fillMaxSize()
+            )
+            // Scrim so UI text stays readable over bright animations.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.72f),
+                            0.45f to Color.Black.copy(alpha = 0.55f),
+                            1f to Color.Black.copy(alpha = 0.65f)
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp)
+            ) {
             Header(currentLabel)
             Spacer(Modifier.height(10.dp))
             Button(
@@ -97,6 +121,7 @@ fun MainScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 Footer()
+            }
             }
         }
     }
