@@ -12,8 +12,10 @@ android {
         applicationId = "com.arcusfoundry.labs.pixelpilot"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Derived from git tag in the release workflow. For local/debug builds
+        // these default values are used, but they're never shipped to users.
+        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("APP_VERSION_NAME") ?: "0.1.0-dev"
     }
 
     signingConfigs {

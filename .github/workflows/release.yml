@@ -45,12 +45,27 @@ jobs:
       - name: Generate Gradle wrapper
         run: gradle wrapper
 
+      - name: Compute version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION_NAME="${TAG#v}"
+          IFS='.' read -r MAJ MIN PAT <<< "$VERSION_NAME"
+          MAJ="${MAJ:-0}"; MIN="${MIN:-0}"; PAT="${PAT:-0}"
+          # versionCode: MAJ*10000 + MIN*100 + PAT → strictly increasing for semver.
+          VERSION_CODE=$((10#$MAJ * 10000 + 10#$MIN * 100 + 10#$PAT))
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION_NAME as versionCode $VERSION_CODE"
+
       - name: Build signed release APK
         env:
           SIGNING_KEYSTORE_PATH: ${{ github.workspace }}/keystore/release.p12
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
+          APP_VERSION_CODE: ${{ steps.version.outputs.code }}
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Remove keystore
