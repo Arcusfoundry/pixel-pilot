@@ -45,12 +45,14 @@ echo "Generating 32-char random password..."
 STORE_PW=$(openssl rand -base64 48 | tr -d '+/=\r\n' | cut -c1-32)
 
 echo "Generating RSA-2048 key and self-signed certificate..."
-openssl req -x509 -newkey rsa:2048 -days "$VALIDITY_DAYS" -nodes \
+# MSYS_NO_PATHCONV prevents Git Bash from mangling the -subj slash-separated DN
+# into a Windows path. No-op on native Linux/macOS shells.
+MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -days "$VALIDITY_DAYS" -nodes \
     -keyout signing-key.pem -out signing-cert.pem \
     -subj "$SUBJECT" 2>/dev/null
 
 echo "Bundling into PKCS12 keystore ($P12_PATH)..."
-openssl pkcs12 -export \
+MSYS_NO_PATHCONV=1 openssl pkcs12 -export \
     -in signing-cert.pem -inkey signing-key.pem \
     -out "$P12_PATH" -name "$KEY_ALIAS" \
     -password "pass:$STORE_PW" 2>/dev/null
