@@ -34,6 +34,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var tintStrength by mutableStateOf(prefs.tintStrength)
         private set
+    var syncThemedIcons by mutableStateOf(prefs.syncThemedIcons)
+        private set
     var recents by mutableStateOf(prefs.recents)
         private set
     var downloadState by mutableStateOf<DownloadState>(DownloadState.Idle)
@@ -49,6 +51,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
             WallpaperPreferences.KEY_TINT_COLOR -> tintColor = prefs.tintColor
             WallpaperPreferences.KEY_RAINBOW_CYCLE -> rainbowCycleSeconds = prefs.rainbowCycleSeconds
             WallpaperPreferences.KEY_TINT_STRENGTH -> tintStrength = prefs.tintStrength
+            WallpaperPreferences.KEY_SYNC_THEMED_ICONS -> syncThemedIcons = prefs.syncThemedIcons
             WallpaperPreferences.KEY_RECENTS -> recents = prefs.recents
         }
     }
@@ -92,6 +95,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     fun updateTintColor(color: Int) { prefs.tintColor = color }
     fun updateRainbowCycle(seconds: Float) { prefs.rainbowCycleSeconds = seconds }
     fun updateTintStrength(v: Float) { prefs.tintStrength = v }
+    fun updateSyncThemedIcons(v: Boolean) { prefs.syncThemedIcons = v }
 
     fun persistPickedVideo(context: Context, uriString: String) {
         // Take persistable URI permission so the wallpaper service can still

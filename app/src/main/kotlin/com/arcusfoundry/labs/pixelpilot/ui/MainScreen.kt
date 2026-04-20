@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -180,6 +181,13 @@ private fun MediaPane(
 @Composable
 private fun CustomizePane(viewModel: WallpaperViewModel, context: Context) {
     Column {
+        Text(
+            "Playback",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
         LabeledSlider(
             label = "Speed",
             value = viewModel.speed,
@@ -214,34 +222,82 @@ private fun CustomizePane(viewModel: WallpaperViewModel, context: Context) {
             onStrengthChange = viewModel::updateTintStrength
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
+        SystemIntegrationSection(viewModel, context)
+    }
+}
+
+@Composable
+private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Context) {
+    Column {
         Text(
-            "System theme color",
+            "System integration",
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        // Themed icons row.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Sync themed icons too",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "When syncing system colors, also open the Themed Icons setting so you can enable it alongside the new accent.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = viewModel.syncThemedIcons,
+                onCheckedChange = viewModel::updateSyncThemedIcons
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Sync system colors",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            "Drives Material You extraction. Replaces the live wallpaper temporarily — you'll need to re-apply it afterward.",
+            "Sets the current tint as the wallpaper color so Material You extracts from it. Replaces the live wallpaper — re-apply it after.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = 6.dp)
+            modifier = Modifier.padding(vertical = 4.dp)
         )
         OutlinedButton(
             onClick = {
                 val result = SystemThemeApplier.applyThemeColor(context, viewModel.tintColor)
-                val msg = result.fold(
-                    onSuccess = { "System theme color applied. Re-apply live wallpaper when ready." },
+                val baseMsg = result.fold(
+                    onSuccess = { "System colors synced. Re-apply live wallpaper when ready." },
                     onFailure = { "Failed: ${it.message}" }
                 )
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, baseMsg, Toast.LENGTH_LONG).show()
+                if (result.isSuccess && viewModel.syncThemedIcons) {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                }
             },
             enabled = viewModel.tintKind == "static",
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                if (viewModel.tintKind == "static") "Apply to System Theme"
+                if (viewModel.tintKind == "static") "Sync system colors"
                 else "Pick a static tint color first"
             )
         }

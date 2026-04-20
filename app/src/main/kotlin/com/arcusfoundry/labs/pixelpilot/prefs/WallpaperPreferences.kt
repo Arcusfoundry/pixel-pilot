@@ -45,6 +45,10 @@ class WallpaperPreferences(context: Context) {
         get() = prefs.getFloat(KEY_TINT_STRENGTH, 0.6f)
         set(v) = prefs.edit { putFloat(KEY_TINT_STRENGTH, v) }
 
+    var syncThemedIcons: Boolean
+        get() = prefs.getBoolean(KEY_SYNC_THEMED_ICONS, false)
+        set(v) = prefs.edit { putBoolean(KEY_SYNC_THEMED_ICONS, v) }
+
     /**
      * MRU list of user-provided video sources, newest first. Each entry is
      * a serialized WallpaperSource ("video:..." or "file:..."). Capped at 5.
@@ -96,6 +100,7 @@ class WallpaperPreferences(context: Context) {
         const val KEY_TINT_COLOR = "tint_color"
         const val KEY_RAINBOW_CYCLE = "rainbow_cycle"
         const val KEY_TINT_STRENGTH = "tint_strength"
+        const val KEY_SYNC_THEMED_ICONS = "sync_themed_icons"
         const val KEY_RECENTS = "recents"
 
         val ALL_PARAM_KEYS = setOf(
