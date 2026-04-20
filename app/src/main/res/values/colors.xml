@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="af_lime">#c3d95e</color>
+    <color name="af_lime_hover">#d4e87a</color>
+    <color name="af_olive">#23270f</color>
+    <color name="af_olive_light">#2e3314</color>
+    <color name="af_orange">#e8591a</color>
+    <color name="af_text">#e8e6dc</color>
+    <color name="black">#ff000000</color>
+    <color name="white">#ffffffff</color>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PixelPilot" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/af_olive</item>
+        <item name="android:navigationBarColor">@color/af_olive</item>
+        <item name="android:windowBackground">@color/af_olive</item>
+    </style>
+</resources>
