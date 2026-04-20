@@ -66,6 +66,12 @@ fun TintControls(
                     initialColor = tintColor,
                     onColorChange = onColorChange
                 )
+                Spacer(Modifier.height(4.dp))
+                HexColorInput(
+                    color = tintColor,
+                    onColorChange = onColorChange
+                )
+                Spacer(Modifier.height(8.dp))
                 LabeledSlider(
                     label = "Intensity",
                     value = tintStrength,
