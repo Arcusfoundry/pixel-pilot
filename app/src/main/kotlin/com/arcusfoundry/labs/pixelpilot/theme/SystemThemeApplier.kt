@@ -50,6 +50,7 @@ object SystemThemeApplier {
         wm.setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM)
         bitmap.recycle()
         Log.i(TAG, "Applied theme color: #${Integer.toHexString(color)}")
+        Unit
     }.onFailure { Log.e(TAG, "Failed to apply theme color", it) }
 
     private fun darken(color: Int, amount: Float): Int = mix(color, Color.BLACK, amount)
