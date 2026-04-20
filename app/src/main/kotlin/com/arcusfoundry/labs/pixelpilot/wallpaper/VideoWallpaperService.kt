@@ -7,6 +7,7 @@ import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
 import androidx.media3.common.util.UnstableApi
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
+import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
 import com.arcusfoundry.labs.pixelpilot.render.ProceduralRenderer
 import com.arcusfoundry.labs.pixelpilot.render.VideoRenderer
 import com.arcusfoundry.labs.pixelpilot.render.WallpaperRenderer
@@ -18,6 +19,11 @@ import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
  * WallpaperRenderer (procedural / video / local file) and forwards lifecycle.
  */
 class VideoWallpaperService : WallpaperService() {
+
+    override fun onCreate() {
+        super.onCreate()
+        AssetLoader.initialize(this)
+    }
 
     @OptIn(UnstableApi::class)
     override fun onCreateEngine(): Engine = PixelPilotEngine()

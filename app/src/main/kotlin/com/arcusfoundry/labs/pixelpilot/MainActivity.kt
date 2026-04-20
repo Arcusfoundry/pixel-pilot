@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
 import com.arcusfoundry.labs.pixelpilot.ui.MainScreen
 import com.arcusfoundry.labs.pixelpilot.ui.WallpaperViewModel
 import com.arcusfoundry.labs.pixelpilot.ui.theme.PixelPilotTheme
@@ -19,6 +20,7 @@ import com.arcusfoundry.labs.pixelpilot.wallpaper.VideoWallpaperService
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AssetLoader.initialize(this)
         enableEdgeToEdge()
         setContent {
             PixelPilotTheme {
