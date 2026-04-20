@@ -69,13 +69,13 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun setSpeed(v: Float) { prefs.speed = v }
-    fun setScale(v: Float) { prefs.scale = v }
-    fun setDim(v: Float) { prefs.dim = v }
-    fun setTintKind(kind: String) { prefs.tintKind = kind }
-    fun setTintColor(color: Int) { prefs.tintColor = color }
-    fun setRainbowCycle(seconds: Float) { prefs.rainbowCycleSeconds = seconds }
-    fun setTintStrength(v: Float) { prefs.tintStrength = v }
+    fun updateSpeed(v: Float) { prefs.speed = v }
+    fun updateScale(v: Float) { prefs.scale = v }
+    fun updateDim(v: Float) { prefs.dim = v }
+    fun updateTintKind(kind: String) { prefs.tintKind = kind }
+    fun updateTintColor(color: Int) { prefs.tintColor = color }
+    fun updateRainbowCycle(seconds: Float) { prefs.rainbowCycleSeconds = seconds }
+    fun updateTintStrength(v: Float) { prefs.tintStrength = v }
 
     fun persistPickedVideo(context: Context, uriString: String) {
         // Take persistable URI permission so the wallpaper service can still

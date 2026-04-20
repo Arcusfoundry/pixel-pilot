@@ -94,21 +94,21 @@ fun MainScreen(
             LabeledSlider(
                 label = "Speed",
                 value = viewModel.speed,
-                onValueChange = viewModel::setSpeed,
+                onValueChange = viewModel::updateSpeed,
                 valueRange = 0.05f..3f,
                 displayValue = "%.2fx".format(viewModel.speed)
             )
             LabeledSlider(
                 label = "Size",
                 value = viewModel.scale,
-                onValueChange = viewModel::setScale,
+                onValueChange = viewModel::updateScale,
                 valueRange = 0.5f..3f,
                 displayValue = "%.2fx".format(viewModel.scale)
             )
             LabeledSlider(
                 label = "Dim",
                 value = viewModel.dim,
-                onValueChange = viewModel::setDim,
+                onValueChange = viewModel::updateDim,
                 valueRange = 0f..0.9f,
                 displayValue = "${(viewModel.dim * 100).toInt()}%"
             )
@@ -119,10 +119,10 @@ fun MainScreen(
                 tintColor = viewModel.tintColor,
                 rainbowCycleSeconds = viewModel.rainbowCycleSeconds,
                 tintStrength = viewModel.tintStrength,
-                onKindChange = viewModel::setTintKind,
-                onColorChange = viewModel::setTintColor,
-                onRainbowCycleChange = viewModel::setRainbowCycle,
-                onStrengthChange = viewModel::setTintStrength
+                onKindChange = viewModel::updateTintKind,
+                onColorChange = viewModel::updateTintColor,
+                onRainbowCycleChange = viewModel::updateRainbowCycle,
+                onStrengthChange = viewModel::updateTintStrength
             )
 
             Spacer(Modifier.height(32.dp))
