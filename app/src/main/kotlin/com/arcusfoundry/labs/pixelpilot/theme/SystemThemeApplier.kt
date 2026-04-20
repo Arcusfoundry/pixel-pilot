@@ -4,10 +4,6 @@ import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Paint
-import android.graphics.Shader
 import android.util.Log
 
 /**
@@ -26,41 +22,24 @@ object SystemThemeApplier {
     private const val BITMAP_SIZE = 512
 
     /**
-     * Generates a vertical-gradient bitmap from [color] (slightly darkened at top)
-     * and sets it as the system wallpaper. Gradient gives Monet a slightly wider
-     * palette to extract, producing a more nuanced theme than a pure solid color.
+     * Sets a solid-color bitmap as the home-screen wallpaper. Android's Monet
+     * engine then samples and extracts the palette, rebuilding the system theme
+     * (including launcher icons when Themed Icons is enabled) around that color.
+     *
+     * Solid color gives Monet the strongest, most predictable signal — a gradient
+     * caused the extracted palette to drift based on which region Monet weighted.
+     * Also applies FLAG_SYSTEM | FLAG_LOCK so lock and home screens match and
+     * Monet re-samples even if the user's current lock wallpaper was the source.
      */
     fun applyThemeColor(context: Context, color: Int): Result<Unit> = runCatching {
         val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        val darker = darken(color, 0.25f)
-        val lighter = lighten(color, 0.1f)
-        val paint = Paint().apply {
-            shader = LinearGradient(
-                0f, 0f, 0f, BITMAP_SIZE.toFloat(),
-                darker, lighter,
-                Shader.TileMode.CLAMP
-            )
-        }
-        canvas.drawRect(0f, 0f, BITMAP_SIZE.toFloat(), BITMAP_SIZE.toFloat(), paint)
+        Canvas(bitmap).drawColor(color)
 
         val wm = WallpaperManager.getInstance(context)
-        // FLAG_SYSTEM drives home-screen wallpaper, which is what Monet samples.
-        wm.setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM)
+        val flags = WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK
+        wm.setBitmap(bitmap, null, true, flags)
         bitmap.recycle()
         Log.i(TAG, "Applied theme color: #${Integer.toHexString(color)}")
         Unit
     }.onFailure { Log.e(TAG, "Failed to apply theme color", it) }
-
-    private fun darken(color: Int, amount: Float): Int = mix(color, Color.BLACK, amount)
-    private fun lighten(color: Int, amount: Float): Int = mix(color, Color.WHITE, amount)
-
-    private fun mix(a: Int, b: Int, t: Float): Int {
-        val ta = t.coerceIn(0f, 1f)
-        val r = (Color.red(a) * (1 - ta) + Color.red(b) * ta).toInt()
-        val g = (Color.green(a) * (1 - ta) + Color.green(b) * ta).toInt()
-        val bl = (Color.blue(a) * (1 - ta) + Color.blue(b) * ta).toInt()
-        return Color.argb(255, r, g, bl)
-    }
 }

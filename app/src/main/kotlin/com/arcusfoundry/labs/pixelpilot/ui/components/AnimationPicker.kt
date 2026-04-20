@@ -1,12 +1,12 @@
 package com.arcusfoundry.labs.pixelpilot.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,10 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arcusfoundry.labs.pixelpilot.render.Animation
@@ -67,36 +69,56 @@ private fun AnimationCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = Color(animation.defaultBackground).copy(alpha = 1f)
+    val fallback = Color(animation.defaultBackground).copy(alpha = 1f)
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val thumbnail = AnimationThumbnailCache.thumbnailFor(animation)
+
     Box(
         modifier = Modifier
-            .width(120.dp)
-            .height(90.dp)
+            .width(140.dp)
+            .height(100.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(bg)
+            .background(fallback)
             .border(2.dp, borderColor, RoundedCornerShape(10.dp))
             .clickable { onClick() }
-            .padding(8.dp)
     ) {
+        if (thumbnail != null) {
+            Image(
+                bitmap = thumbnail.asImageBitmap(),
+                contentDescription = animation.displayName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        // Bottom-up gradient keeps the label legible over whatever's rendered above.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.45f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.75f)
+                    )
+                )
+        )
         Column(
-            Modifier.fillMaxSize(),
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = animation.category,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.6f)
+                color = Color.White.copy(alpha = 0.85f)
             )
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = animation.displayName,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
+            Text(
+                text = animation.displayName,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
         }
     }
 }
-
