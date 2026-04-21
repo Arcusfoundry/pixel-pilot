@@ -5,6 +5,7 @@ import android.view.Surface
 import android.view.TextureView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -38,6 +39,14 @@ fun WallpaperPreviewSurface(
         onDispose {
             state.detachAndRelease()
         }
+    }
+
+    // Push the latest params to the live renderer whenever any slider / tint
+    // changes. Cannot rely on AndroidView.update alone — Compose can short-circuit
+    // if it considers successive lambda invocations identical, and for data-class
+    // params with subtle changes that can miss.
+    LaunchedEffect(params) {
+        state.renderer?.updateParams(params)
     }
 
     AndroidView(
