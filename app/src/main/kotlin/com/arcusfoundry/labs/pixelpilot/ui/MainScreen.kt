@@ -78,11 +78,10 @@ fun MainScreen(
         containerColor = Color.Transparent
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            WallpaperPreviewSurface(
-                source = currentSource,
-                params = viewModel.renderParams(),
-                modifier = Modifier.fillMaxSize()
-            )
+            // App window is translucent via Theme.PixelPilot (windowShowWallpaper=true),
+            // so the actual live system wallpaper shows through the UI. No duplicate
+            // renderer needed. If Pixel Pilot isn't the active wallpaper yet, whatever
+            // IS active shows through — the activation banner prompts the user to fix.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
