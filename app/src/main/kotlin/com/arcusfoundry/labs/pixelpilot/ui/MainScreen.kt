@@ -40,6 +40,8 @@ import com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 import com.arcusfoundry.labs.pixelpilot.theme.SystemThemeApplier
 import com.arcusfoundry.labs.pixelpilot.ui.components.AnimationPicker
+import com.arcusfoundry.labs.pixelpilot.ui.components.ColorWheel
+import com.arcusfoundry.labs.pixelpilot.ui.components.HexColorInput
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
@@ -271,11 +273,21 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            "Sets the current tint as the wallpaper color so Material You extracts from it. Replaces the live wallpaper — re-apply it after.",
+            "Sets the picked color as the wallpaper so Material You extracts from it. Replaces the live wallpaper — re-apply it after.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 4.dp)
         )
+        ColorWheel(
+            initialColor = viewModel.tintColor,
+            onColorChange = viewModel::updateTintColor
+        )
+        Spacer(Modifier.height(4.dp))
+        HexColorInput(
+            color = viewModel.tintColor,
+            onColorChange = viewModel::updateTintColor
+        )
+        Spacer(Modifier.height(10.dp))
         OutlinedButton(
             onClick = {
                 val result = SystemThemeApplier.applyThemeColor(context, viewModel.tintColor)
@@ -293,13 +305,9 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
                     }
                 }
             },
-            enabled = viewModel.tintKind == "static",
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                if (viewModel.tintKind == "static") "Sync system colors"
-                else "Pick a static tint color first"
-            )
+            Text("Sync system colors")
         }
     }
 }
