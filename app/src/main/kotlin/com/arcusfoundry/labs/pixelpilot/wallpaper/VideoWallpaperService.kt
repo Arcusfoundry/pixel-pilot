@@ -48,6 +48,15 @@ class VideoWallpaperService : WallpaperService() {
                     mainHandler.post { reloadSource() }
                 key == WallpaperPreferences.KEY_SYSTEM_SYNC_COLOR ->
                     mainHandler.post { notifyColorsChanged() }
+                key.startsWith(WallpaperPreferences.SCENE_KEY_PREFIX) -> {
+                    val activeId = (currentSource as? WallpaperSource.Procedural)?.animationId
+                    if (activeId != null && prefs.isSceneKeyFor(activeId, key)) {
+                        mainHandler.post {
+                            (renderer as? com.arcusfoundry.labs.pixelpilot.render.ProceduralRenderer)
+                                ?.reinitializeWithSceneConfig()
+                        }
+                    }
+                }
                 key in WallpaperPreferences.ALL_PARAM_KEYS ->
                     mainHandler.post { renderer?.updateParams(prefs.renderParams()) }
             }
@@ -134,7 +143,7 @@ class VideoWallpaperService : WallpaperService() {
             val newRenderer: WallpaperRenderer = when (source) {
                 is WallpaperSource.Procedural -> {
                     val animation = AnimationRegistry.get(source.animationId) ?: AnimationRegistry.default
-                    ProceduralRenderer(animation)
+                    ProceduralRenderer(animation, prefs)
                 }
                 is WallpaperSource.Video -> VideoRenderer(this@VideoWallpaperService, source.uri)
                 is WallpaperSource.LocalFile -> VideoRenderer(this@VideoWallpaperService, source.path)

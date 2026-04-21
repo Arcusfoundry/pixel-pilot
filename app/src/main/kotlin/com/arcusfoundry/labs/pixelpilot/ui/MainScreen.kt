@@ -45,6 +45,7 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.ColorWheel
 import com.arcusfoundry.labs.pixelpilot.ui.components.HexColorInput
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
+import com.arcusfoundry.labs.pixelpilot.ui.components.SceneSettingsSheet
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
 import com.arcusfoundry.labs.pixelpilot.ui.components.YouTubeDialog
@@ -66,6 +67,9 @@ fun MainScreen(
 
     var showCustomize by remember { mutableStateOf(false) }
     var showYouTube by remember { mutableStateOf(false) }
+    var sceneSettingsFor by remember {
+        mutableStateOf<com.arcusfoundry.labs.pixelpilot.render.Animation?>(null)
+    }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
@@ -112,7 +116,15 @@ fun MainScreen(
                         viewModel = viewModel,
                         currentSource = currentSource,
                         onAddVideo = onPickVideo,
-                        onAddYouTube = { showYouTube = true }
+                        onAddYouTube = { showYouTube = true },
+                        onOpenSceneSettings = { animation ->
+                            // Per handoff: if card isn't selected, select it first, then open sheet.
+                            val cur = (currentSource as? WallpaperSource.Procedural)?.animationId
+                            if (cur != animation.id) {
+                                viewModel.selectSource(WallpaperSource.Procedural(animation.id))
+                            }
+                            sceneSettingsFor = animation
+                        }
                     )
                     Spacer(Modifier.height(80.dp))
                     Footer()
@@ -162,6 +174,17 @@ fun MainScreen(
             }
         )
     }
+
+    sceneSettingsFor?.let { animation ->
+        SceneSettingsSheet(
+            animation = animation,
+            currentValues = viewModel.sceneValues(animation),
+            onValueChange = { key, value ->
+                viewModel.setSceneValue(animation.id, key, value)
+            },
+            onDismiss = { sceneSettingsFor = null }
+        )
+    }
 }
 
 @Composable
@@ -169,7 +192,8 @@ private fun AnimationsPane(
     viewModel: WallpaperViewModel,
     currentSource: WallpaperSource?,
     onAddVideo: () -> Unit,
-    onAddYouTube: () -> Unit
+    onAddYouTube: () -> Unit,
+    onOpenSceneSettings: (com.arcusfoundry.labs.pixelpilot.render.Animation) -> Unit
 ) {
     val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
 
@@ -202,7 +226,8 @@ private fun AnimationsPane(
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
-            onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) }
+            onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) },
+            onOpenSettings = onOpenSceneSettings
         )
     }
 }

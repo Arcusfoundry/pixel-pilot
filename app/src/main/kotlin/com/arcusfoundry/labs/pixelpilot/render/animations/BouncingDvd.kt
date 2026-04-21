@@ -6,6 +6,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import com.arcusfoundry.labs.pixelpilot.render.Animation
 import com.arcusfoundry.labs.pixelpilot.render.ColorUtil
+import com.arcusfoundry.labs.pixelpilot.render.SceneConfig
+import com.arcusfoundry.labs.pixelpilot.render.SettingSpec
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -16,16 +18,29 @@ object BouncingDvdAnimation : Animation {
     override val defaultBackground = Color.BLACK
     override val legacy = true
 
+    override val settings: List<SettingSpec> = listOf(
+        SettingSpec.Text(
+            key = "word",
+            label = "Word",
+            default = "DVD",
+            maxLength = 16
+        )
+    )
+
     private class State(
         var x: Float, var y: Float,
         var vx: Float, var vy: Float,
         var hue: Float,
         val bg: Paint,
         val text: Paint,
-        val small: Paint
+        val small: Paint,
+        val word: String
     )
 
-    override fun initialize(width: Int, height: Int, scale: Float): Any {
+    override fun initialize(width: Int, height: Int, scale: Float): Any =
+        initialize(width, height, scale, SceneConfig.EMPTY)
+
+    override fun initialize(width: Int, height: Int, scale: Float, config: SceneConfig): Any {
         val bg = Paint().apply { color = Color.BLACK }
         val text = Paint().apply {
             isAntiAlias = true
@@ -37,11 +52,13 @@ object BouncingDvdAnimation : Animation {
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }
+        val word = config.string("word", "DVD").take(16)
         return State(
             x = Random.nextFloat() * (width - 200),
             y = Random.nextFloat() * (height - 100),
             vx = 1.6f, vy = 1.2f,
-            hue = 60f, bg = bg, text = text, small = small
+            hue = 60f, bg = bg, text = text, small = small,
+            word = word
         )
     }
 
@@ -76,11 +93,11 @@ object BouncingDvdAnimation : Animation {
         s.small.textSize = logoH * 0.22f
         val cx = s.x + logoW / 2f
         val cy = s.y + logoH / 2f
-        canvas.drawText("DVD", cx, cy - 6f, s.text)
+        canvas.drawText(s.word, cx, cy - 6f, s.text)
         canvas.drawText("VIDEO", cx, cy + logoH * 0.28f, s.small)
         if (hit) {
             s.text.setShadowLayer(30f, 0f, 0f, color)
-            canvas.drawText("DVD", cx, cy - 6f, s.text)
+            canvas.drawText(s.word, cx, cy - 6f, s.text)
             s.text.clearShadowLayer()
         }
     }

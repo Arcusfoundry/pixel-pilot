@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.arcusfoundry.labs.pixelpilot.render.RenderParams
+import com.arcusfoundry.labs.pixelpilot.render.SceneConfig
+import com.arcusfoundry.labs.pixelpilot.render.SettingSpec
 import com.arcusfoundry.labs.pixelpilot.render.TintMode
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 
@@ -78,6 +80,45 @@ class WallpaperPreferences(context: Context) {
         recents = next
     }
 
+    /**
+     * Reads the user's scene-scoped values for an animation (keyed under
+     * "scene:<animationId>:<settingKey>"), folding in each spec's default.
+     */
+    fun sceneConfig(animationId: String, specs: List<SettingSpec>): SceneConfig {
+        if (specs.isEmpty()) return SceneConfig.EMPTY
+        val map = mutableMapOf<String, Any?>()
+        for (spec in specs) {
+            val k = sceneKey(animationId, spec.key)
+            map[spec.key] = when (spec) {
+                is SettingSpec.Text -> prefs.getString(k, spec.default) ?: spec.default
+                is SettingSpec.IntRange -> prefs.getInt(k, spec.default)
+                is SettingSpec.Color -> prefs.getInt(k, spec.default)
+                is SettingSpec.Choice -> prefs.getString(k, spec.default) ?: spec.default
+            }
+        }
+        return SceneConfig(map)
+    }
+
+    fun setSceneValue(animationId: String, key: String, value: Any) {
+        val k = sceneKey(animationId, key)
+        prefs.edit {
+            when (value) {
+                is String -> putString(k, value)
+                is Int -> putInt(k, value)
+                is Float -> putFloat(k, value)
+                is Boolean -> putBoolean(k, value)
+                else -> putString(k, value.toString())
+            }
+        }
+    }
+
+    private fun sceneKey(animationId: String, settingKey: String): String =
+        "$SCENE_KEY_PREFIX$animationId:$settingKey"
+
+    /** True if [key] is a scene-scoped key belonging to [animationId]. */
+    fun isSceneKeyFor(animationId: String, key: String?): Boolean =
+        key != null && key.startsWith("$SCENE_KEY_PREFIX$animationId:")
+
     fun renderParams(): RenderParams {
         val tintMode = when (tintKind) {
             "static" -> TintMode.Static(tintColor)
@@ -114,6 +155,7 @@ class WallpaperPreferences(context: Context) {
         const val KEY_SYNC_THEMED_ICONS = "sync_themed_icons"
         const val KEY_SYSTEM_SYNC_COLOR = "system_sync_color"
         const val KEY_RECENTS = "recents"
+        const val SCENE_KEY_PREFIX = "scene:"
 
         val ALL_PARAM_KEYS = setOf(
             KEY_SOURCE, KEY_SPEED, KEY_SCALE, KEY_DIM,

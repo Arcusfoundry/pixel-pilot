@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Choreographer
 import android.view.Surface
+import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 
 /**
  * Runs an Animation and writes its frames to the wallpaper Surface.
@@ -21,7 +22,10 @@ import android.view.Surface
  * the back-buffer (contents preserved across frames). Each frame we blit the
  * back-buffer to the Surface in one shot. Accumulation effects now work.
  */
-class ProceduralRenderer(private val animation: Animation) : WallpaperRenderer {
+class ProceduralRenderer(
+    private val animation: Animation,
+    private val prefs: WallpaperPreferences? = null
+) : WallpaperRenderer {
 
     private var surface: Surface? = null
     private var width = 0
@@ -71,7 +75,7 @@ class ProceduralRenderer(private val animation: Animation) : WallpaperRenderer {
             }
         }
 
-        state = animation.initialize(width, height, params.scale)
+        state = animation.initialize(width, height, params.scale, currentSceneConfig())
         running = true
         if (visible) Choreographer.getInstance().postFrameCallback(frameCallback)
     }
@@ -88,7 +92,7 @@ class ProceduralRenderer(private val animation: Animation) : WallpaperRenderer {
         this.params = params
         if (kotlin.math.abs(params.scale - lastInitScale) > 0.15f && running) {
             lastInitScale = params.scale
-            state = animation.initialize(width, height, params.scale)
+            state = animation.initialize(width, height, params.scale, currentSceneConfig())
             // Scale change usually means a visual reset; clear back-buffer to bg.
             backCanvas?.drawColor(animation.defaultBackground)
         }
@@ -107,6 +111,20 @@ class ProceduralRenderer(private val animation: Animation) : WallpaperRenderer {
     override fun release() {
         detach()
     }
+
+    /**
+     * Called when a scene-scoped pref for this animation changes. Re-initializes
+     * the animation state with the latest config values without rebuilding the
+     * whole renderer.
+     */
+    fun reinitializeWithSceneConfig() {
+        if (!running) return
+        state = animation.initialize(width, height, params.scale, currentSceneConfig())
+        backCanvas?.drawColor(animation.defaultBackground)
+    }
+
+    private fun currentSceneConfig() =
+        prefs?.sceneConfig(animation.id, animation.settings) ?: com.arcusfoundry.labs.pixelpilot.render.SceneConfig.EMPTY
 
     private fun effectiveTintColor(): Int? = when (val mode = params.tint) {
         TintMode.None -> null

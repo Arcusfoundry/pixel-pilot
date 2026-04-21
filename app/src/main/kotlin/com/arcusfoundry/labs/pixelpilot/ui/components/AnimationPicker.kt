@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -34,6 +35,7 @@ fun AnimationPicker(
     animationsByCategory: Map<String, List<Animation>>,
     selectedId: String?,
     onSelect: (Animation) -> Unit,
+    onOpenSettings: (Animation) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -54,7 +56,8 @@ fun AnimationPicker(
                     AnimationCard(
                         animation = animation,
                         selected = selectedId == animation.id,
-                        onClick = { onSelect(animation) }
+                        onClick = { onSelect(animation) },
+                        onOpenSettings = { onOpenSettings(animation) }
                     )
                 }
             }
@@ -67,7 +70,8 @@ fun AnimationPicker(
 private fun AnimationCard(
     animation: Animation,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onOpenSettings: () -> Unit = {}
 ) {
     val fallback = Color(animation.defaultBackground).copy(alpha = 1f)
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
@@ -112,7 +116,15 @@ private fun AnimationCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                if (selected) AppliedPill()
+                androidx.compose.foundation.layout.Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    if (animation.settings.isNotEmpty()) {
+                        GearButton(onClick = onOpenSettings)
+                    }
+                    if (selected) AppliedPill()
+                }
             }
             Text(
                 text = animation.displayName,
@@ -121,6 +133,27 @@ private fun AnimationCard(
                 color = Color.White
             )
         }
+    }
+}
+
+@Composable
+private fun GearButton(onClick: () -> Unit) {
+    // Small circular tap target. Its own clickable handler stops the event
+    // from bubbling up to the card's onClick, so tapping the gear opens
+    // settings instead of applying the animation.
+    Box(
+        Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .clickable { onClick() },
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = "⚙",
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White
+        )
     }
 }
 

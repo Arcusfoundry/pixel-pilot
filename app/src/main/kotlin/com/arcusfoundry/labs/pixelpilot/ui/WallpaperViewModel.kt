@@ -100,6 +100,23 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     fun updateTintStrength(v: Float) { prefs.tintStrength = v }
     fun updateSyncThemedIcons(v: Boolean) { prefs.syncThemedIcons = v }
 
+    /** Current scene-scoped values for an animation, folded with each spec's default. */
+    fun sceneValues(animation: com.arcusfoundry.labs.pixelpilot.render.Animation): Map<String, Any?> {
+        val cfg = prefs.sceneConfig(animation.id, animation.settings)
+        return animation.settings.associate { spec ->
+            spec.key to when (spec) {
+                is com.arcusfoundry.labs.pixelpilot.render.SettingSpec.Text -> cfg.string(spec.key, spec.default)
+                is com.arcusfoundry.labs.pixelpilot.render.SettingSpec.IntRange -> cfg.int(spec.key, spec.default)
+                is com.arcusfoundry.labs.pixelpilot.render.SettingSpec.Color -> cfg.color(spec.key, spec.default)
+                is com.arcusfoundry.labs.pixelpilot.render.SettingSpec.Choice -> cfg.choice(spec.key, spec.default)
+            }
+        }
+    }
+
+    fun setSceneValue(animationId: String, key: String, value: Any) {
+        prefs.setSceneValue(animationId, key, value)
+    }
+
     fun persistPickedVideo(context: Context, uriString: String) {
         // Take persistable URI permission so the wallpaper service can still
         // read the content URI after app process dies.
