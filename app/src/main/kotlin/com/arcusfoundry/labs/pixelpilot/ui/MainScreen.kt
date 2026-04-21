@@ -45,7 +45,11 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.HexColorInput
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
+import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -150,11 +154,36 @@ private fun AnimationsPane(
     viewModel: WallpaperViewModel,
     currentSource: WallpaperSource?
 ) {
-    AnimationPicker(
-        animationsByCategory = AnimationRegistry.byCategory,
-        selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
-        onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) }
-    )
+    val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
+
+    Column {
+        if (userVideos.isNotEmpty()) {
+            Text(
+                text = "Your Videos",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(userVideos) { src ->
+                    val selected = currentSource?.serialize() == src.serialize()
+                    VideoCard(
+                        source = src,
+                        selected = selected,
+                        onClick = { viewModel.selectSource(src) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
+        AnimationPicker(
+            animationsByCategory = AnimationRegistry.byCategory,
+            selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
+            onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) }
+        )
+    }
 }
 
 @Composable
@@ -165,13 +194,13 @@ private fun MediaPane(
 ) {
     Column {
         Text(
-            "Add a video from your device or download one from YouTube. Downloaded videos live locally. No streaming after the initial download.",
+            "Add videos from your device or download from YouTube. Added videos show up as thumbnails in the Animations tab, ready to pick.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 10.dp)
         )
         MediaSection(
-            recents = viewModel.recents,
+            recents = emptyList(), // Recents now shown in the Animations tab
             downloadState = viewModel.downloadState,
             currentSource = currentSource,
             onPickVideo = onPickVideo,

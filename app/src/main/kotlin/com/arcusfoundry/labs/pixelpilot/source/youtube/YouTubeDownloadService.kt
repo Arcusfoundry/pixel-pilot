@@ -47,7 +47,10 @@ class YouTubeDownloadService(private val context: Context) {
                 ?: throw IllegalStateException("No playable video streams found")
 
             val streamUrl = videoStream.content ?: error("Missing stream URL")
-            val outFile = File(context.cacheDir, "pp_${youtubeUrl.hashCode()}_${System.currentTimeMillis()}.mp4")
+            // filesDir (not cacheDir) so Android doesn't reclaim the wallpaper source
+            // under storage pressure. Lives in a dedicated subdir for tidy listing.
+            val dir = File(context.filesDir, "downloaded-videos").apply { mkdirs() }
+            val outFile = File(dir, "pp_${youtubeUrl.hashCode()}_${System.currentTimeMillis()}.mp4")
 
             http.newCall(Request.Builder().url(streamUrl).build()).execute().use { resp ->
                 if (!resp.isSuccessful) error("HTTP ${resp.code} fetching stream")
