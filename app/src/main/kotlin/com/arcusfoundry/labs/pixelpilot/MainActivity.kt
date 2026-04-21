@@ -4,6 +4,7 @@ import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -23,6 +24,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Ask the window manager to composite the live wallpaper behind our
+        // activity (bypassing the launcher's icons/widgets). Requires theme
+        // to have windowIsTranslucent+transparent background, which it does.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         AssetLoader.initialize(this)
         vm = ViewModelProvider(this)[WallpaperViewModel::class.java]
         enableEdgeToEdge()
