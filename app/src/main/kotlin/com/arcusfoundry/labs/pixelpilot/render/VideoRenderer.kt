@@ -68,11 +68,16 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
             if (params.scale >= 1f) C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
             else C.VIDEO_SCALING_MODE_SCALE_TO_FIT
         )
+        // Only touch the effects pipeline when there's an actual effect to apply.
+        // Passing an empty list disrupts frame output on some Media3 paths,
+        // leaving the wallpaper surface blank.
         val effects = buildEffects()
-        try {
-            p.setVideoEffects(effects)
-        } catch (e: Throwable) {
-            Log.w(TAG, "setVideoEffects unavailable: ${e.message}")
+        if (effects.isNotEmpty()) {
+            try {
+                p.setVideoEffects(effects)
+            } catch (e: Throwable) {
+                Log.w(TAG, "setVideoEffects unavailable: ${e.message}")
+            }
         }
     }
 

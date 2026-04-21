@@ -5,34 +5,38 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.util.Log
+import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 
 /**
- * Drives Material You color extraction by setting a small solid-color bitmap
- * as the static system wallpaper. Android's Monet engine extracts the dominant
- * color and rebuilds the system theme (icons, accents, settings surfaces) around it.
+ * Two-pronged Material You sync:
  *
- * After calling applyThemeColor(), the live wallpaper is replaced with the primed
- * bitmap. Users must manually re-apply the live wallpaper to get their animation
- * back. This is an unavoidable consequence of how Monet sampling works — it runs
- * against whatever the current wallpaper is.
+ * 1. If Pixel Pilot is the current wallpaper, writing to prefs.systemSyncColor
+ *    fires the wallpaper engine's prefs listener, which calls
+ *    Engine.notifyColorsChanged(). Android then re-invokes onComputeColors()
+ *    on the engine, which returns WallpaperColors(syncColor). Monet extracts
+ *    from that directly. No wallpaper replacement, no re-apply required.
+ *
+ * 2. If some other wallpaper is active (or as a fallback), also setBitmap()
+ *    a solid-color image so Monet has something to sample even without our
+ *    engine running.
+ *
+ * Running both is cheap and gives the best chance of working across devices
+ * and launcher behaviors.
  */
 object SystemThemeApplier {
 
     private const val TAG = "SystemThemeApplier"
     private const val BITMAP_SIZE = 512
 
-    /**
-     * Sets a solid-color bitmap as the home-screen wallpaper. Android's Monet
-     * engine then samples and extracts the palette, rebuilding the system theme
-     * (including launcher icons when Themed Icons is enabled) around that color.
-     *
-     * Solid color gives Monet the strongest, most predictable signal — a gradient
-     * caused the extracted palette to drift based on which region Monet weighted.
-     * Also applies FLAG_SYSTEM | FLAG_LOCK so lock and home screens match and
-     * Monet re-samples even if the user's current lock wallpaper was the source.
-     */
     fun applyThemeColor(context: Context, color: Int): Result<Unit> = runCatching {
-        val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888)
+        // Path 1: write to prefs so our wallpaper engine re-publishes colors.
+        WallpaperPreferences(context).systemSyncColor = color
+
+        // Path 2: also set a solid bitmap so if Pixel Pilot isn't the active
+        // wallpaper, Monet still has a sample to extract from.
+        val bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888).apply {
+            setHasAlpha(false)
+        }
         Canvas(bitmap).drawColor(color)
 
         val wm = WallpaperManager.getInstance(context)

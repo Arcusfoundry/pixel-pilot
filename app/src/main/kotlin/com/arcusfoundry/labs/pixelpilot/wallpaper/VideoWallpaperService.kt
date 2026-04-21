@@ -1,6 +1,8 @@
 package com.arcusfoundry.labs.pixelpilot.wallpaper
 
+import android.app.WallpaperColors
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
@@ -40,11 +42,19 @@ class VideoWallpaperService : WallpaperService() {
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == null) return@OnSharedPreferenceChangeListener
-            if (key == WallpaperPreferences.KEY_SOURCE) {
-                mainHandler.post { reloadSource() }
-            } else if (key in WallpaperPreferences.ALL_PARAM_KEYS) {
-                mainHandler.post { renderer?.updateParams(prefs.renderParams()) }
+            when {
+                key == WallpaperPreferences.KEY_SOURCE ->
+                    mainHandler.post { reloadSource() }
+                key == WallpaperPreferences.KEY_SYSTEM_SYNC_COLOR ->
+                    mainHandler.post { notifyColorsChanged() }
+                key in WallpaperPreferences.ALL_PARAM_KEYS ->
+                    mainHandler.post { renderer?.updateParams(prefs.renderParams()) }
             }
+        }
+
+        override fun onComputeColors(): WallpaperColors? {
+            val c = prefs.systemSyncColor ?: return super.onComputeColors()
+            return WallpaperColors(Color.valueOf(c), null, null)
         }
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {

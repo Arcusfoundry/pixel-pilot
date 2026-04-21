@@ -50,6 +50,17 @@ class WallpaperPreferences(context: Context) {
         set(v) = prefs.edit { putBoolean(KEY_SYNC_THEMED_ICONS, v) }
 
     /**
+     * Color the wallpaper engine should declare via onComputeColors(). Null means
+     * "no override, sample naturally from frames." Non-null drives Material You
+     * Monet extraction directly without replacing the wallpaper.
+     */
+    var systemSyncColor: Int?
+        get() = if (prefs.contains(KEY_SYSTEM_SYNC_COLOR)) prefs.getInt(KEY_SYSTEM_SYNC_COLOR, 0) else null
+        set(v) = prefs.edit {
+            if (v == null) remove(KEY_SYSTEM_SYNC_COLOR) else putInt(KEY_SYSTEM_SYNC_COLOR, v)
+        }
+
+    /**
      * MRU list of user-provided video sources, newest first. Each entry is
      * a serialized WallpaperSource ("video:..." or "file:..."). Capped at 5.
      */
@@ -101,6 +112,7 @@ class WallpaperPreferences(context: Context) {
         const val KEY_RAINBOW_CYCLE = "rainbow_cycle"
         const val KEY_TINT_STRENGTH = "tint_strength"
         const val KEY_SYNC_THEMED_ICONS = "sync_themed_icons"
+        const val KEY_SYSTEM_SYNC_COLOR = "system_sync_color"
         const val KEY_RECENTS = "recents"
 
         val ALL_PARAM_KEYS = setOf(
