@@ -10,12 +10,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import java.io.File
 
@@ -32,19 +33,24 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
 
     override fun attach(surface: Surface, width: Int, height: Int) {
         val mediaUri = toPlayableUri(sourceUri)
-        Log.i(TAG, "attach: raw=$sourceUri resolved=$mediaUri surface=${surface.isValid} size=${width}x${height}")
+        Log.w(TAG, "attach: raw=$sourceUri resolved=$mediaUri surface=${surface.isValid} size=${width}x${height}")
 
-        // Build media source explicitly so we control the data source factory path.
-        // Avoids any ambiguity in MediaItem -> MediaSource auto-resolution.
+        // DefaultMediaSourceFactory auto-selects the extractor based on actual
+        // content sniffing — including FragmentedMp4Extractor for fMP4 files that
+        // ProgressiveMediaSource.Factory doesn't handle. Fragmented MP4 is a
+        // likely culprit for YouTube-downloaded files that show thumbnails but
+        // don't play (MediaMetadataRetriever reads the moov atom even when
+        // ProgressiveExtractor can't find tracks).
         val dataSourceFactory = DefaultDataSource.Factory(context)
-        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(MediaItem.fromUri(mediaUri))
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-        val newPlayer = ExoPlayer.Builder(context).build().apply {
+        val newPlayer = ExoPlayer.Builder(context)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build().apply {
             setVideoSurface(surface)
             volume = 0f
             repeatMode = Player.REPEAT_MODE_ALL
-            setMediaSource(mediaSource)
+            setMediaItem(MediaItem.fromUri(mediaUri))
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
                     val msg = "${error.errorCodeName} (${error.errorCode}): ${error.message}"
@@ -68,7 +74,17 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
                     }
                 }
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
-                    Log.i(TAG, "videoSize=${videoSize.width}x${videoSize.height}")
+                    Log.w(TAG, "videoSize=${videoSize.width}x${videoSize.height}")
+                }
+                override fun onTracksChanged(tracks: Tracks) {
+                    val summary = if (tracks.groups.isEmpty()) "NO_TRACKS"
+                    else tracks.groups.joinToString(",") { g ->
+                        "${g.type}(len=${g.length}, sel=${g.isSelected})"
+                    }
+                    Log.w(TAG, "tracks: $summary")
+                    val now = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                        .format(java.util.Date())
+                    WallpaperPreferences(context).lastVideoState = "$now TRACKS $summary"
                 }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     Log.i(TAG, "isPlaying=$isPlaying")
