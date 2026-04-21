@@ -13,6 +13,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.exoplayer.ExoPlayer
+import java.io.File
 
 /**
  * Renders MP4 (or any ExoPlayer-supported format) wallpapers. Applies dim, tint, and
@@ -26,11 +27,12 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
     private var visible = false
 
     override fun attach(surface: Surface, width: Int, height: Int) {
+        val mediaUri = toPlayableUri(sourceUri)
         val newPlayer = ExoPlayer.Builder(context).build().apply {
             setVideoSurface(surface)
             volume = 0f
             repeatMode = Player.REPEAT_MODE_ALL
-            setMediaItem(MediaItem.fromUri(Uri.parse(sourceUri)))
+            setMediaItem(MediaItem.fromUri(mediaUri))
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
                     Log.e(TAG, "video playback error", error)
@@ -137,5 +139,24 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
 
     companion object {
         private const val TAG = "VideoRenderer"
+
+        /**
+         * Normalizes a source string into a URI ExoPlayer can open:
+         * - content:// URIs (SAF picks) pass through unchanged
+         * - file:// URIs pass through
+         * - http(s):// URIs pass through
+         * - bare absolute paths are wrapped as Uri.fromFile to get a proper
+         *   file:// URI. Bare paths go unrecognized by ExoPlayer's default
+         *   data sources, which is why local files downloaded from YouTube
+         *   weren't playing.
+         */
+        private fun toPlayableUri(source: String): Uri {
+            val parsed = Uri.parse(source)
+            return if (parsed.scheme.isNullOrEmpty()) {
+                Uri.fromFile(File(source))
+            } else {
+                parsed
+            }
+        }
     }
 }
