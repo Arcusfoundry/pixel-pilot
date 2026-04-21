@@ -142,6 +142,12 @@ fun MainScreen(
                 text = { Text("Customize", fontWeight = FontWeight.SemiBold) },
                 icon = { Text("✎") }
             )
+
+            VersionStamp(
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment.BottomStart)
+                    .padding(start = 12.dp, bottom = 12.dp)
+            )
         }
     }
 
@@ -385,6 +391,28 @@ private fun ActivationBanner(onActivate: () -> Unit) {
             )
         }
     }
+}
+
+@Composable
+private fun VersionStamp(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val label = remember {
+        try {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            val code = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION") info.versionCode.toLong()
+            }
+            "v${info.versionName} (${code})"
+        } catch (_: Throwable) { "vUnknown" }
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = Color.White.copy(alpha = 0.45f),
+        modifier = modifier
+    )
 }
 
 @Composable
