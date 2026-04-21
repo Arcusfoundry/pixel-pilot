@@ -60,6 +60,17 @@ class ProceduralRenderer(private val animation: Animation) : WallpaperRenderer {
         backBuffer = bb
         backCanvas = bc
 
+        // Prime the output Surface immediately with the default background so the
+        // system wallpaper picker preview isn't black for the first ~frame before
+        // Choreographer fires. Rendered frames overwrite this.
+        if (surface.isValid) {
+            val primeCanvas = try { surface.lockCanvas(null) } catch (_: Exception) { null }
+            if (primeCanvas != null) {
+                primeCanvas.drawColor(animation.defaultBackground)
+                try { surface.unlockCanvasAndPost(primeCanvas) } catch (_: Exception) {}
+            }
+        }
+
         state = animation.initialize(width, height, params.scale)
         running = true
         if (visible) Choreographer.getInstance().postFrameCallback(frameCallback)

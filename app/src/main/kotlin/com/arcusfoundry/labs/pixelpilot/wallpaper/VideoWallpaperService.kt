@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
+import android.util.Log
 import android.view.SurfaceHolder
 import androidx.media3.common.util.UnstableApi
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
@@ -68,6 +69,8 @@ class VideoWallpaperService : WallpaperService() {
             val frame = holder.surfaceFrame
             surfaceWidth = frame.width()
             surfaceHeight = frame.height()
+            Log.d(TAG, "onSurfaceCreated ${surfaceWidth}x${surfaceHeight}")
+            detachRenderer()
             attachRenderer()
         }
 
@@ -75,6 +78,7 @@ class VideoWallpaperService : WallpaperService() {
             super.onSurfaceChanged(holder, format, width, height)
             surfaceWidth = width
             surfaceHeight = height
+            Log.d(TAG, "onSurfaceChanged ${width}x${height}")
             detachRenderer()
             attachRenderer()
         }
@@ -86,7 +90,20 @@ class VideoWallpaperService : WallpaperService() {
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
+            // Self-heal: foldable fold/unfold sometimes drops us in a state with
+            // no renderer attached. Any visibility transition to visible is a
+            // safe time to rebuild if we're missing one.
+            if (visible && renderer == null) {
+                Log.d(TAG, "visibility true + no renderer, reattaching")
+                attachRenderer()
+            }
             renderer?.setVisible(visible)
+        }
+
+        override fun onSurfaceRedrawNeeded(holder: SurfaceHolder) {
+            super.onSurfaceRedrawNeeded(holder)
+            // System is requesting a redraw (e.g. after wake). Ensure we're attached.
+            if (renderer == null) attachRenderer()
         }
 
         override fun onDestroy() {
@@ -128,6 +145,8 @@ class VideoWallpaperService : WallpaperService() {
             newRenderer.setVisible(isVisible)
             renderer = newRenderer
         }
+
+        private val TAG = "PixelPilotEngine"
 
         private fun detachRenderer() {
             renderer?.release()

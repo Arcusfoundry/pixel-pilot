@@ -46,7 +46,6 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
-import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
@@ -69,67 +68,42 @@ fun MainScreen(
     var selectedTab by remember { mutableStateOf(Tab.Animations) }
     val currentSource = viewModel.source
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            WallpaperPreviewSurface(
-                source = currentSource,
-                params = viewModel.renderParams(),
-                modifier = Modifier.fillMaxSize()
+    Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp, bottom = 16.dp)
+        ) {
+            TabBar(
+                selected = selectedTab,
+                onSelect = { selectedTab = it }
             )
-            // Scrim so UI text stays readable over bright animations.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.72f),
-                            0.45f to Color.Black.copy(alpha = 0.55f),
-                            1f to Color.Black.copy(alpha = 0.65f)
-                        )
-                    )
-            )
+
+            Spacer(Modifier.height(12.dp))
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 16.dp)
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)
             ) {
-                Header()
-                Spacer(Modifier.height(12.dp))
-
-                TabBar(
-                    selected = selectedTab,
-                    onSelect = { selectedTab = it }
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(scroll)
-                ) {
-                    when (selectedTab) {
-                        Tab.Animations -> AnimationsPane(viewModel, currentSource)
-                        Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
-                        Tab.Customize -> CustomizePane(viewModel, context)
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    Footer()
-                    Spacer(Modifier.height(8.dp))
+                when (selectedTab) {
+                    Tab.Animations -> AnimationsPane(viewModel, currentSource)
+                    Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
+                    Tab.Customize -> CustomizePane(viewModel, context)
                 }
-
+                Spacer(Modifier.height(24.dp))
+                Footer()
                 Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onSetAsWallpaper,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Set as Wallpaper") }
             }
+
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onSetAsWallpaper,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Set as Wallpaper") }
         }
     }
 }
@@ -338,22 +312,6 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
         ) {
             Text("Sync system colors")
         }
-    }
-}
-
-@Composable
-private fun Header() {
-    Column {
-        Text(
-            "Pixel Pilot",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            "Customization without compromise.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
