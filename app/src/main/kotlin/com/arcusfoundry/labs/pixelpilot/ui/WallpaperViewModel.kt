@@ -41,6 +41,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var downloadState by mutableStateOf<DownloadState>(DownloadState.Idle)
         private set
+    var lastVideoError by mutableStateOf(prefs.lastVideoError)
+        private set
     var isPixelPilotActiveWallpaper by mutableStateOf(checkIsActive(app))
         private set
 
@@ -56,6 +58,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
             WallpaperPreferences.KEY_TINT_STRENGTH -> tintStrength = prefs.tintStrength
             WallpaperPreferences.KEY_SYNC_THEMED_ICONS -> syncThemedIcons = prefs.syncThemedIcons
             WallpaperPreferences.KEY_RECENTS -> recents = prefs.recents
+            WallpaperPreferences.KEY_LAST_VIDEO_ERROR -> lastVideoError = prefs.lastVideoError
         }
     }
 

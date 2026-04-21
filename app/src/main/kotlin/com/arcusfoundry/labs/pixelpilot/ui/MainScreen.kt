@@ -105,6 +105,10 @@ fun MainScreen(
                     ActivationBanner(onActivate = onSetAsWallpaper)
                     Spacer(Modifier.height(12.dp))
                 }
+                viewModel.lastVideoError?.let { err ->
+                    PlaybackErrorBanner(err)
+                    Spacer(Modifier.height(12.dp))
+                }
 
                 Column(
                     modifier = Modifier
@@ -343,6 +347,29 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sync system colors")
+        }
+    }
+}
+
+@Composable
+private fun PlaybackErrorBanner(message: String) {
+    androidx.compose.material3.Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Text(
+                "Video playback error",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+            )
         }
     }
 }

@@ -62,6 +62,13 @@ class WallpaperPreferences(context: Context) {
             if (v == null) remove(KEY_SYSTEM_SYNC_COLOR) else putInt(KEY_SYSTEM_SYNC_COLOR, v)
         }
 
+    /** Last video playback error, or null if playback is healthy. */
+    var lastVideoError: String?
+        get() = prefs.getString(KEY_LAST_VIDEO_ERROR, null)
+        set(v) = prefs.edit {
+            if (v == null) remove(KEY_LAST_VIDEO_ERROR) else putString(KEY_LAST_VIDEO_ERROR, v)
+        }
+
     /**
      * MRU list of user-provided video sources, newest first. Each entry is
      * a serialized WallpaperSource ("video:..." or "file:..."). Capped at 5.
@@ -154,6 +161,7 @@ class WallpaperPreferences(context: Context) {
         const val KEY_TINT_STRENGTH = "tint_strength"
         const val KEY_SYNC_THEMED_ICONS = "sync_themed_icons"
         const val KEY_SYSTEM_SYNC_COLOR = "system_sync_color"
+        const val KEY_LAST_VIDEO_ERROR = "last_video_error"
         const val KEY_RECENTS = "recents"
         const val SCENE_KEY_PREFIX = "scene:"
 

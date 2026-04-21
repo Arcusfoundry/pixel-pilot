@@ -16,6 +16,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import java.io.File
 
 /**
@@ -46,7 +47,9 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
             setMediaSource(mediaSource)
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
-                    Log.e(TAG, "PlaybackError ${error.errorCodeName} (${error.errorCode}): ${error.message}", error)
+                    val msg = "${error.errorCodeName} (${error.errorCode}): ${error.message}"
+                    Log.e(TAG, "PlaybackError $msg", error)
+                    WallpaperPreferences(context).lastVideoError = msg
                 }
                 override fun onPlaybackStateChanged(state: Int) {
                     val name = when (state) {
@@ -56,7 +59,11 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
                         Player.STATE_ENDED -> "ENDED"
                         else -> "state_$state"
                     }
-                    Log.i(TAG, "state=$name")
+                    Log.w(TAG, "state=$name")
+                    if (state == Player.STATE_READY) {
+                        // Healthy playback clears the error banner.
+                        WallpaperPreferences(context).lastVideoError = null
+                    }
                 }
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
                     Log.i(TAG, "videoSize=${videoSize.width}x${videoSize.height}")

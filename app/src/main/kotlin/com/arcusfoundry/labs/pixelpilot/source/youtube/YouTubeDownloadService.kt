@@ -11,6 +11,7 @@ import okio.sink
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.localization.Localization
+import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -41,11 +42,17 @@ class YouTubeDownloadService(private val context: Context) {
             val extractor = service.getStreamExtractor(youtubeUrl)
             extractor.fetchPage()
 
-            // Prefer muxed (has audio), fall back to video-only. Pick highest resolution.
-            val candidates = (extractor.videoStreams.orEmpty() + extractor.videoOnlyStreams.orEmpty())
+            // Progressive HTTP streams only — single-URL complete files that
+            // play standalone. DASH / HLS entries are fragments and need a
+            // manifest to reassemble; fetching one alone yields a file the
+            // thumbnail extractor can read but ExoPlayer can't play.
+            val allCandidates = (extractor.videoStreams.orEmpty() + extractor.videoOnlyStreams.orEmpty())
                 .filter { !it.content.isNullOrBlank() }
-            Log.i(TAG, "Candidates: ${candidates.size} streams available")
-            val videoStream = candidates
+            val progressive = allCandidates.filter {
+                it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP
+            }
+            Log.w(TAG, "candidates total=${allCandidates.size} progressive=${progressive.size}")
+            val videoStream = (if (progressive.isNotEmpty()) progressive else allCandidates)
                 .maxByOrNull { it.resolution?.let { r -> parseResolution(r) } ?: 0 }
                 ?: throw IllegalStateException("No playable video streams found")
 
