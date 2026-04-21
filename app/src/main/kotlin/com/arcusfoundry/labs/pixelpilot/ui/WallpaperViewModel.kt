@@ -43,6 +43,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var lastVideoError by mutableStateOf(prefs.lastVideoError)
         private set
+    var lastVideoState by mutableStateOf(prefs.lastVideoState)
+        private set
     var isPixelPilotActiveWallpaper by mutableStateOf(checkIsActive(app))
         private set
 
@@ -59,6 +61,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
             WallpaperPreferences.KEY_SYNC_THEMED_ICONS -> syncThemedIcons = prefs.syncThemedIcons
             WallpaperPreferences.KEY_RECENTS -> recents = prefs.recents
             WallpaperPreferences.KEY_LAST_VIDEO_ERROR -> lastVideoError = prefs.lastVideoError
+            WallpaperPreferences.KEY_LAST_VIDEO_STATE -> lastVideoState = prefs.lastVideoState
         }
     }
 

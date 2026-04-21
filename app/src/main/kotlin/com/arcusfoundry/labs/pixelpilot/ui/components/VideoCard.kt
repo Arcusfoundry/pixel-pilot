@@ -105,15 +105,15 @@ fun VideoCard(
 private fun VideoGearButton(onClick: () -> Unit) {
     androidx.compose.foundation.layout.Box(
         Modifier
-            .size(22.dp)
-            .clip(RoundedCornerShape(11.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .size(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = 0.6f))
             .clickable { onClick() },
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         Text(
             text = "⚙",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = Color.White
         )
     }

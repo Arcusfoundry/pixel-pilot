@@ -83,17 +83,6 @@ fun MainScreen(
                 params = viewModel.renderParams(),
                 modifier = Modifier.fillMaxSize()
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.72f),
-                            0.5f to Color.Black.copy(alpha = 0.55f),
-                            1f to Color.Black.copy(alpha = 0.7f)
-                        )
-                    )
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -108,6 +97,16 @@ fun MainScreen(
                 viewModel.lastVideoError?.let { err ->
                     PlaybackErrorBanner(err)
                     Spacer(Modifier.height(12.dp))
+                }
+                val isVideoSource = currentSource is WallpaperSource.Video ||
+                    currentSource is WallpaperSource.LocalFile
+                if (isVideoSource) {
+                    viewModel.lastVideoState?.let { state ->
+                        if (!state.contains("READY")) {
+                            PlaybackStateBanner(state)
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
                 }
 
                 Column(
@@ -347,6 +346,29 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sync system colors")
+        }
+    }
+}
+
+@Composable
+private fun PlaybackStateBanner(state: String) {
+    androidx.compose.material3.Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Text(
+                "Playback state",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                state,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

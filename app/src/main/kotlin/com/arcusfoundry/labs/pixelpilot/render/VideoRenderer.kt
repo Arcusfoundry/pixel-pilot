@@ -60,8 +60,10 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
                         else -> "state_$state"
                     }
                     Log.w(TAG, "state=$name")
+                    val now = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                        .format(java.util.Date())
+                    WallpaperPreferences(context).lastVideoState = "$now $name"
                     if (state == Player.STATE_READY) {
-                        // Healthy playback clears the error banner.
                         WallpaperPreferences(context).lastVideoError = null
                     }
                 }

@@ -132,20 +132,20 @@ private fun AnimationCard(
 
 @Composable
 private fun GearButton(onClick: () -> Unit) {
-    // Small circular tap target. Its own clickable handler stops the event
-    // from bubbling up to the card's onClick, so tapping the gear opens
-    // settings instead of applying the animation.
+    // 36dp circular tap target. Its own clickable handler stops events
+    // bubbling to the card's onClick so tapping the gear opens settings
+    // rather than re-applying the animation.
     Box(
         Modifier
-            .size(22.dp)
-            .clip(RoundedCornerShape(11.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .size(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = 0.6f))
             .clickable { onClick() },
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         Text(
             text = "⚙",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = Color.White
         )
     }

@@ -69,6 +69,13 @@ class WallpaperPreferences(context: Context) {
             if (v == null) remove(KEY_LAST_VIDEO_ERROR) else putString(KEY_LAST_VIDEO_ERROR, v)
         }
 
+    /** Current playback state trail ("ATTACH 1234x5678 / IDLE → BUFFERING"). */
+    var lastVideoState: String?
+        get() = prefs.getString(KEY_LAST_VIDEO_STATE, null)
+        set(v) = prefs.edit {
+            if (v == null) remove(KEY_LAST_VIDEO_STATE) else putString(KEY_LAST_VIDEO_STATE, v)
+        }
+
     /**
      * MRU list of user-provided video sources, newest first. Each entry is
      * a serialized WallpaperSource ("video:..." or "file:..."). Capped at 5.
@@ -162,6 +169,7 @@ class WallpaperPreferences(context: Context) {
         const val KEY_SYNC_THEMED_ICONS = "sync_themed_icons"
         const val KEY_SYSTEM_SYNC_COLOR = "system_sync_color"
         const val KEY_LAST_VIDEO_ERROR = "last_video_error"
+        const val KEY_LAST_VIDEO_STATE = "last_video_state"
         const val KEY_RECENTS = "recents"
         const val SCENE_KEY_PREFIX = "scene:"
 
