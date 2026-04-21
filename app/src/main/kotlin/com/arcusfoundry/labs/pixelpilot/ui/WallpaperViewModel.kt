@@ -1,6 +1,7 @@
 package com.arcusfoundry.labs.pixelpilot.ui
 
 import android.app.Application
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
@@ -39,6 +40,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     var recents by mutableStateOf(prefs.recents)
         private set
     var downloadState by mutableStateOf<DownloadState>(DownloadState.Idle)
+        private set
+    var isPixelPilotActiveWallpaper by mutableStateOf(checkIsActive(app))
         private set
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -131,6 +134,16 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearDownloadState() { downloadState = DownloadState.Idle }
+
+    /** Re-check whether Pixel Pilot is the active system wallpaper. Call on activity resume. */
+    fun refreshActiveWallpaperStatus() {
+        isPixelPilotActiveWallpaper = checkIsActive(getApplication())
+    }
+
+    private fun checkIsActive(context: Context): Boolean {
+        val wm = WallpaperManager.getInstance(context)
+        return wm.wallpaperInfo?.component?.packageName == context.packageName
+    }
 
     sealed class DownloadState {
         data object Idle : DownloadState()

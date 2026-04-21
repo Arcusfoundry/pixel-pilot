@@ -46,6 +46,7 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
+import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
@@ -68,42 +69,87 @@ fun MainScreen(
     var selectedTab by remember { mutableStateOf(Tab.Animations) }
     val currentSource = viewModel.source
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp, bottom = 16.dp)
-        ) {
-            TabBar(
-                selected = selectedTab,
-                onSelect = { selectedTab = it }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.Transparent
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            WallpaperPreviewSurface(
+                source = currentSource,
+                params = viewModel.renderParams(),
+                modifier = Modifier.fillMaxSize()
             )
-
-            Spacer(Modifier.height(12.dp))
-
+            // Dark gradient scrim for UI text legibility.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.72f),
+                            0.5f to Color.Black.copy(alpha = 0.55f),
+                            1f to Color.Black.copy(alpha = 0.7f)
+                        )
+                    )
+            )
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scroll)
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 16.dp)
             ) {
-                when (selectedTab) {
-                    Tab.Animations -> AnimationsPane(viewModel, currentSource)
-                    Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
-                    Tab.Customize -> CustomizePane(viewModel, context)
+                if (!viewModel.isPixelPilotActiveWallpaper) {
+                    ActivationBanner(onActivate = onSetAsWallpaper)
+                    Spacer(Modifier.height(12.dp))
                 }
-                Spacer(Modifier.height(24.dp))
-                Footer()
-                Spacer(Modifier.height(8.dp))
-            }
 
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onSetAsWallpaper,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Set as Wallpaper") }
+                TabBar(
+                    selected = selectedTab,
+                    onSelect = { selectedTab = it }
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(scroll)
+                ) {
+                    when (selectedTab) {
+                        Tab.Animations -> AnimationsPane(viewModel, currentSource)
+                        Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
+                        Tab.Customize -> CustomizePane(viewModel, context)
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Footer()
+                    Spacer(Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivationBanner(onActivate: () -> Unit) {
+    androidx.compose.material3.Surface(
+        onClick = onActivate,
+        color = MaterialTheme.colorScheme.primary,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Text(
+                "Tap to activate Pixel Pilot",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "Once it's your wallpaper, every selection applies instantly.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+            )
         }
     }
 }

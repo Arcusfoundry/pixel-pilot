@@ -9,7 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
 import com.arcusfoundry.labs.pixelpilot.ui.MainScreen
@@ -18,13 +18,16 @@ import com.arcusfoundry.labs.pixelpilot.ui.theme.PixelPilotTheme
 import com.arcusfoundry.labs.pixelpilot.wallpaper.VideoWallpaperService
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var vm: WallpaperViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AssetLoader.initialize(this)
+        vm = ViewModelProvider(this)[WallpaperViewModel::class.java]
         enableEdgeToEdge()
         setContent {
             PixelPilotTheme {
-                val vm: WallpaperViewModel = viewModel()
                 val context = this
 
                 val videoPicker = rememberLauncherForActivityResult(
@@ -44,6 +47,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check whether Pixel Pilot is the active wallpaper on return from picker.
+        if (::vm.isInitialized) vm.refreshActiveWallpaperStatus()
     }
 
     private fun launchWallpaperPicker() {
