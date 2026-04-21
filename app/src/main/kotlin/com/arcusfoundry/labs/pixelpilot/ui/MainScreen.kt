@@ -47,7 +47,6 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
