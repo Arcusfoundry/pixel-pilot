@@ -6,58 +6,54 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 import com.arcusfoundry.labs.pixelpilot.theme.SystemThemeApplier
+import com.arcusfoundry.labs.pixelpilot.ui.components.AddCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.AnimationPicker
 import com.arcusfoundry.labs.pixelpilot.ui.components.ColorWheel
 import com.arcusfoundry.labs.pixelpilot.ui.components.HexColorInput
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
-import com.arcusfoundry.labs.pixelpilot.ui.components.MediaSection
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import com.arcusfoundry.labs.pixelpilot.ui.components.YouTubeDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.Row
+import kotlinx.coroutines.launch
 
-private enum class Tab(val label: String) {
-    Animations("Animations"),
-    Media("Media"),
-    Customize("Customize")
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: WallpaperViewModel,
@@ -66,8 +62,12 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     val scroll = rememberScrollState()
-    var selectedTab by remember { mutableStateOf(Tab.Animations) }
     val currentSource = viewModel.source
+
+    var showCustomize by remember { mutableStateOf(false) }
+    var showYouTube by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -79,7 +79,6 @@ fun MainScreen(
                 params = viewModel.renderParams(),
                 modifier = Modifier.fillMaxSize()
             )
-            // Dark gradient scrim for UI text legibility.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -103,128 +102,107 @@ fun MainScreen(
                     Spacer(Modifier.height(12.dp))
                 }
 
-                TabBar(
-                    selected = selectedTab,
-                    onSelect = { selectedTab = it }
-                )
-
-                Spacer(Modifier.height(12.dp))
-
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .verticalScroll(scroll)
                 ) {
-                    when (selectedTab) {
-                        Tab.Animations -> AnimationsPane(viewModel, currentSource)
-                        Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
-                        Tab.Customize -> CustomizePane(viewModel, context)
-                    }
-                    Spacer(Modifier.height(24.dp))
+                    AnimationsPane(
+                        viewModel = viewModel,
+                        currentSource = currentSource,
+                        onAddVideo = onPickVideo,
+                        onAddYouTube = { showYouTube = true }
+                    )
+                    Spacer(Modifier.height(80.dp))
                     Footer()
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(24.dp))
                 }
+            }
+
+            ExtendedFloatingActionButton(
+                onClick = { showCustomize = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment.BottomCenter)
+                    .padding(bottom = 24.dp),
+                text = { Text("Customize", fontWeight = FontWeight.SemiBold) },
+                icon = { Text("✎") }
+            )
+        }
+    }
+
+    if (showCustomize) {
+        ModalBottomSheet(
+            onDismissRequest = { showCustomize = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                CustomizePane(viewModel, context)
             }
         }
     }
-}
 
-@Composable
-private fun ActivationBanner(onActivate: () -> Unit) {
-    androidx.compose.material3.Surface(
-        onClick = onActivate,
-        color = MaterialTheme.colorScheme.primary,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(
-                "Tap to activate Pixel Pilot",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "Once it's your wallpaper, every selection applies instantly.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TabBar(selected: Tab, onSelect: (Tab) -> Unit) {
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        Tab.entries.forEachIndexed { index, tab ->
-            SegmentedButton(
-                selected = selected == tab,
-                onClick = { onSelect(tab) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = Tab.entries.size),
-                label = { Text(tab.label) }
-            )
-        }
+    if (showYouTube) {
+        YouTubeDialog(
+            downloadState = viewModel.downloadState,
+            onDownload = { viewModel.downloadYouTube(it) },
+            onDismiss = {
+                showYouTube = false
+                viewModel.clearDownloadState()
+            }
+        )
     }
 }
 
 @Composable
 private fun AnimationsPane(
     viewModel: WallpaperViewModel,
-    currentSource: WallpaperSource?
+    currentSource: WallpaperSource?,
+    onAddVideo: () -> Unit,
+    onAddYouTube: () -> Unit
 ) {
     val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
 
     Column {
-        if (userVideos.isNotEmpty()) {
-            Text(
-                text = "Your Videos",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(userVideos) { src ->
-                    val selected = currentSource?.serialize() == src.serialize()
-                    VideoCard(
-                        source = src,
-                        selected = selected,
-                        onClick = { viewModel.selectSource(src) }
-                    )
-                }
+        Text(
+            text = "Your Videos",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                AddCard(symbol = "+", label = "Add video", onClick = onAddVideo)
             }
-            Spacer(Modifier.height(10.dp))
+            item {
+                AddCard(symbol = "▶", label = "+ YouTube", onClick = onAddYouTube)
+            }
+            items(userVideos) { src ->
+                val selected = currentSource?.serialize() == src.serialize()
+                VideoCard(
+                    source = src,
+                    selected = selected,
+                    onClick = { viewModel.selectSource(src) }
+                )
+            }
         }
+        Spacer(Modifier.height(10.dp))
 
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
             onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) }
-        )
-    }
-}
-
-@Composable
-private fun MediaPane(
-    viewModel: WallpaperViewModel,
-    currentSource: WallpaperSource?,
-    onPickVideo: () -> Unit
-) {
-    Column {
-        Text(
-            "Add videos from your device or download from YouTube. Added videos show up as thumbnails in the Animations tab, ready to pick.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 10.dp)
-        )
-        MediaSection(
-            recents = emptyList(), // Recents now shown in the Animations tab
-            downloadState = viewModel.downloadState,
-            currentSource = currentSource,
-            onPickVideo = onPickVideo,
-            onDownloadYouTube = viewModel::downloadYouTube,
-            onSelectRecent = viewModel::selectSource
         )
     }
 }
@@ -290,7 +268,6 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             color = MaterialTheme.colorScheme.primary
         )
 
-        // Themed icons row.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -304,7 +281,7 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    "When syncing system colors, also open the Themed Icons setting so you can enable it alongside the new accent.",
+                    "When syncing system colors, also open the Themed Icons setting.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -322,7 +299,7 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            "Sets the picked color as the wallpaper so Material You extracts from it. Replaces the live wallpaper — re-apply it after.",
+            "Sets the picked color as the wallpaper color so Material You extracts from it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 4.dp)
@@ -341,7 +318,7 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             onClick = {
                 val result = SystemThemeApplier.applyThemeColor(context, viewModel.tintColor)
                 val baseMsg = result.fold(
-                    onSuccess = { "System colors synced. Re-apply live wallpaper when ready." },
+                    onSuccess = { "System colors synced." },
                     onFailure = { "Failed: ${it.message}" }
                 )
                 Toast.makeText(context, baseMsg, Toast.LENGTH_LONG).show()
@@ -362,6 +339,30 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
 }
 
 @Composable
+private fun ActivationBanner(onActivate: () -> Unit) {
+    androidx.compose.material3.Surface(
+        onClick = onActivate,
+        color = MaterialTheme.colorScheme.primary,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Text(
+                "Tap to activate Pixel Pilot",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "Once it's your wallpaper, every selection applies instantly.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
+@Composable
 private fun Footer() {
     Column(
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
@@ -376,8 +377,7 @@ private fun Footer() {
             "Built because nothing better existed. Provided as-is.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontStyle = FontStyle.Italic
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
         )
     }
 }
-
