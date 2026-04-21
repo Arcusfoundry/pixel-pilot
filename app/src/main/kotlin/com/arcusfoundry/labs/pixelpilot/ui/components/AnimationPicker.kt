@@ -71,7 +71,6 @@ private fun AnimationCard(
 ) {
     val fallback = Color(animation.defaultBackground).copy(alpha = 1f)
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val thumbnail = AnimationThumbnailCache.thumbnailFor(animation)
 
     Box(
         modifier = Modifier
@@ -82,15 +81,10 @@ private fun AnimationCard(
             .border(2.dp, borderColor, RoundedCornerShape(10.dp))
             .clickable { onClick() }
     ) {
-        if (thumbnail != null) {
-            Image(
-                bitmap = thumbnail.asImageBitmap(),
-                contentDescription = animation.displayName,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-        // Bottom-up gradient keeps the label legible over whatever's rendered above.
+        LiveAnimationThumbnail(
+            animation = animation,
+            modifier = Modifier.fillMaxSize()
+        )
         Box(
             Modifier
                 .fillMaxSize()
@@ -108,11 +102,18 @@ private fun AnimationCard(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = animation.category,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.85f)
-            )
+            androidx.compose.foundation.layout.Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.Top
+            ) {
+                Text(
+                    text = animation.category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+                ApplyPill(selected = selected)
+            }
             Text(
                 text = animation.displayName,
                 style = MaterialTheme.typography.labelLarge,
@@ -120,5 +121,24 @@ private fun AnimationCard(
                 color = Color.White
             )
         }
+    }
+}
+
+@Composable
+fun ApplyPill(selected: Boolean) {
+    val bg = Color(0xFFC3D95E)
+    val onBg = Color(0xFF23270F)
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = if (selected) "APPLIED" else "APPLY",
+            style = MaterialTheme.typography.labelSmall,
+            color = onBg,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
