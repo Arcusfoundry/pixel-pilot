@@ -88,13 +88,7 @@ fun VideoCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                androidx.compose.foundation.layout.Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                ) {
-                    VideoGearButton(onClick = onOpenSettings)
-                    if (selected) AppliedPill()
-                }
+                if (selected) VideoGearButton(onClick = onOpenSettings)
             }
             Text(
                 text = label,

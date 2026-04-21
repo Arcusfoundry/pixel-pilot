@@ -116,16 +116,9 @@ private fun AnimationCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                androidx.compose.foundation.layout.Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                ) {
-                    // Gear on every tile now — sheet houses global Playback / Tint /
-                    // System integration plus scene-specific settings when the
-                    // animation declares any. Replaces the old Customize FAB.
-                    GearButton(onClick = onOpenSettings)
-                    if (selected) AppliedPill()
-                }
+                // Gear appears only on the selected tile. Selection border
+                // already flags which card is active — no APPLIED pill needed.
+                if (selected) GearButton(onClick = onOpenSettings)
             }
             Text(
                 text = animation.displayName,
