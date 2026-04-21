@@ -65,7 +65,6 @@ fun MainScreen(
     val scroll = rememberScrollState()
     var selectedTab by remember { mutableStateOf(Tab.Animations) }
     val currentSource = viewModel.source
-    val currentLabel = currentSourceLabel(currentSource)
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -94,37 +93,39 @@ fun MainScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp)
+                    .padding(top = 16.dp, bottom = 16.dp)
             ) {
-            Header(currentLabel)
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = onSetAsWallpaper,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Set as Wallpaper") }
-            Spacer(Modifier.height(16.dp))
+                Header()
+                Spacer(Modifier.height(12.dp))
 
-            TabBar(
-                selected = selectedTab,
-                onSelect = { selectedTab = it }
-            )
+                TabBar(
+                    selected = selectedTab,
+                    onSelect = { selectedTab = it }
+                )
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scroll)
-                    .padding(bottom = 24.dp)
-            ) {
-                when (selectedTab) {
-                    Tab.Animations -> AnimationsPane(viewModel, currentSource)
-                    Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
-                    Tab.Customize -> CustomizePane(viewModel, context)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(scroll)
+                ) {
+                    when (selectedTab) {
+                        Tab.Animations -> AnimationsPane(viewModel, currentSource)
+                        Tab.Media -> MediaPane(viewModel, currentSource, onPickVideo)
+                        Tab.Customize -> CustomizePane(viewModel, context)
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Footer()
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(24.dp))
-                Footer()
-            }
+
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = onSetAsWallpaper,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Set as Wallpaper") }
             }
         }
     }
@@ -313,7 +314,7 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
 }
 
 @Composable
-private fun Header(currentLabel: String) {
+private fun Header() {
     Column {
         Text(
             "Pixel Pilot",
@@ -325,30 +326,6 @@ private fun Header(currentLabel: String) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(8.dp))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(12.dp)
-        ) {
-            Row {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "Current",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        currentLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -372,9 +349,3 @@ private fun Footer() {
     }
 }
 
-private fun currentSourceLabel(source: WallpaperSource?): String = when (source) {
-    null -> "Nothing set"
-    is WallpaperSource.Procedural -> AnimationRegistry.get(source.animationId)?.displayName ?: source.animationId
-    is WallpaperSource.Video -> source.uri.substringAfterLast('/').take(50)
-    is WallpaperSource.LocalFile -> source.path.substringAfterLast('/').take(50)
-}
