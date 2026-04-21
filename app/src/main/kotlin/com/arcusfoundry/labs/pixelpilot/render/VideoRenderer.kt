@@ -10,9 +10,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import java.io.File
 
 /**
@@ -28,14 +31,38 @@ class VideoRenderer(private val context: Context, private val sourceUri: String)
 
     override fun attach(surface: Surface, width: Int, height: Int) {
         val mediaUri = toPlayableUri(sourceUri)
+        Log.i(TAG, "attach: raw=$sourceUri resolved=$mediaUri surface=${surface.isValid} size=${width}x${height}")
+
+        // Build media source explicitly so we control the data source factory path.
+        // Avoids any ambiguity in MediaItem -> MediaSource auto-resolution.
+        val dataSourceFactory = DefaultDataSource.Factory(context)
+        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
+            .createMediaSource(MediaItem.fromUri(mediaUri))
+
         val newPlayer = ExoPlayer.Builder(context).build().apply {
             setVideoSurface(surface)
             volume = 0f
             repeatMode = Player.REPEAT_MODE_ALL
-            setMediaItem(MediaItem.fromUri(mediaUri))
+            setMediaSource(mediaSource)
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
-                    Log.e(TAG, "video playback error", error)
+                    Log.e(TAG, "PlaybackError ${error.errorCodeName} (${error.errorCode}): ${error.message}", error)
+                }
+                override fun onPlaybackStateChanged(state: Int) {
+                    val name = when (state) {
+                        Player.STATE_IDLE -> "IDLE"
+                        Player.STATE_BUFFERING -> "BUFFERING"
+                        Player.STATE_READY -> "READY"
+                        Player.STATE_ENDED -> "ENDED"
+                        else -> "state_$state"
+                    }
+                    Log.i(TAG, "state=$name")
+                }
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    Log.i(TAG, "videoSize=${videoSize.width}x${videoSize.height}")
+                }
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    Log.i(TAG, "isPlaying=$isPlaying")
                 }
             })
             prepare()

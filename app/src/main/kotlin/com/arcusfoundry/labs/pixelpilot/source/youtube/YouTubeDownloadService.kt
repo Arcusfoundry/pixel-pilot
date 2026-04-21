@@ -41,12 +41,16 @@ class YouTubeDownloadService(private val context: Context) {
             val extractor = service.getStreamExtractor(youtubeUrl)
             extractor.fetchPage()
 
-            val videoStream = extractor.videoStreams
-                ?.filter { it.content != null }
-                ?.maxByOrNull { it.resolution?.let { r -> parseResolution(r) } ?: 0 }
+            // Prefer muxed (has audio), fall back to video-only. Pick highest resolution.
+            val candidates = (extractor.videoStreams.orEmpty() + extractor.videoOnlyStreams.orEmpty())
+                .filter { !it.content.isNullOrBlank() }
+            Log.i(TAG, "Candidates: ${candidates.size} streams available")
+            val videoStream = candidates
+                .maxByOrNull { it.resolution?.let { r -> parseResolution(r) } ?: 0 }
                 ?: throw IllegalStateException("No playable video streams found")
 
             val streamUrl = videoStream.content ?: error("Missing stream URL")
+            Log.i(TAG, "Selected stream: res=${videoStream.resolution} fmt=${videoStream.format}")
             // filesDir (not cacheDir) so Android doesn't reclaim the wallpaper source
             // under storage pressure. Lives in a dedicated subdir for tidy listing.
             val dir = File(context.filesDir, "downloaded-videos").apply { mkdirs() }
@@ -67,15 +71,47 @@ class YouTubeDownloadService(private val context: Context) {
                             read += n
                             onProgress(read, total)
                         }
+                        Log.i(TAG, "Downloaded ${read} bytes (Content-Length was $total)")
                     }
                 }
             }
+            // Verify the file looks like a recognizable video container.
+            if (!isKnownMediaContainer(outFile)) {
+                outFile.delete()
+                error("Downloaded file does not start with a recognized video container header")
+            }
+            Log.i(TAG, "Download complete: ${outFile.length()} bytes at ${outFile.absolutePath}")
             outFile
         }.onFailure { Log.e(TAG, "YouTube download failed", it) }
     }
 
     private fun parseResolution(raw: String): Int =
         raw.takeWhile { it.isDigit() }.toIntOrNull() ?: 0
+
+    /**
+     * Sniffs the file's leading bytes for a known container header. Catches
+     * the case where NewPipe returned a URL whose HTTP response body is
+     * something other than a playable video (e.g. a JSON error, HTML, or
+     * encrypted fragment that requires different handling).
+     */
+    private fun isKnownMediaContainer(file: File): Boolean = try {
+        file.inputStream().use { input ->
+            val header = ByteArray(12)
+            val n = input.read(header)
+            if (n < 12) return@use false
+            // MP4 / QuickTime: 'ftyp' at bytes 4-7.
+            val isMp4 = header[4] == 'f'.code.toByte() &&
+                header[5] == 't'.code.toByte() &&
+                header[6] == 'y'.code.toByte() &&
+                header[7] == 'p'.code.toByte()
+            // WebM / EBML: 0x1A 0x45 0xDF 0xA3 at the start.
+            val isWebm = header[0] == 0x1A.toByte() &&
+                header[1] == 0x45.toByte() &&
+                (header[2].toInt() and 0xFF) == 0xDF &&
+                (header[3].toInt() and 0xFF) == 0xA3
+            isMp4 || isWebm
+        }
+    } catch (_: Throwable) { false }
 
     companion object {
         private const val TAG = "YouTubeDownloadService"
