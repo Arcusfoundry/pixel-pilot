@@ -112,7 +112,7 @@ private fun AnimationCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                ApplyPill(selected = selected)
+                if (selected) AppliedPill()
             }
             Text(
                 text = animation.displayName,
@@ -124,8 +124,9 @@ private fun AnimationCard(
     }
 }
 
+/** Only rendered on the currently-applied card. Absence on others = less clutter. */
 @Composable
-fun ApplyPill(selected: Boolean) {
+fun AppliedPill() {
     val bg = Color(0xFFC3D95E)
     val onBg = Color(0xFF23270F)
     Box(
@@ -135,7 +136,7 @@ fun ApplyPill(selected: Boolean) {
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = if (selected) "APPLIED" else "APPLY",
+            text = "APPLIED",
             style = MaterialTheme.typography.labelSmall,
             color = onBg,
             fontWeight = FontWeight.Bold

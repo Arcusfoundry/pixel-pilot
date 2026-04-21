@@ -74,11 +74,18 @@ fun VideoCard(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = if (source is WallpaperSource.LocalFile) "Downloaded" else "Video",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.85f)
-            )
+            androidx.compose.foundation.layout.Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.Top
+            ) {
+                Text(
+                    text = if (source is WallpaperSource.LocalFile) "Downloaded" else "Video",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+                if (selected) AppliedPill()
+            }
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
