@@ -34,7 +34,11 @@ private val PixelPilotLightColors = lightColorScheme(
 
 @Composable
 fun PixelPilotTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // The app UI always floats on a dark scrim over the live wallpaper preview,
+    // so we force the dark color scheme regardless of the device's system theme.
+    // Following system theme caused label/heading text to render near-black on
+    // dark scrim (primary resolved to AfOlive in light mode).
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) PixelPilotDarkColors else PixelPilotLightColors
