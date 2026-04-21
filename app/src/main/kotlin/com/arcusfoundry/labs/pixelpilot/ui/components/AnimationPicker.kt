@@ -120,9 +120,10 @@ private fun AnimationCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
-                    if (animation.settings.isNotEmpty()) {
-                        GearButton(onClick = onOpenSettings)
-                    }
+                    // Gear on every tile now — sheet houses global Playback / Tint /
+                    // System integration plus scene-specific settings when the
+                    // animation declares any. Replaces the old Customize FAB.
+                    GearButton(onClick = onOpenSettings)
                     if (selected) AppliedPill()
                 }
             }

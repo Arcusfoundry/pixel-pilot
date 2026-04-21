@@ -1,6 +1,10 @@
 package com.arcusfoundry.labs.pixelpilot.ui.components
 
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -8,9 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -23,13 +30,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arcusfoundry.labs.pixelpilot.render.Animation
 import com.arcusfoundry.labs.pixelpilot.render.SettingSpec
+import com.arcusfoundry.labs.pixelpilot.theme.SystemThemeApplier
+import com.arcusfoundry.labs.pixelpilot.ui.WallpaperViewModel
 
+/**
+ * Unified per-source settings sheet. Always shows global Playback, Tint, and
+ * System Integration sections. If the currently-selected source is a
+ * procedural animation with a non-empty `settings` list, prepends an
+ * animation-specific section at the top.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SceneSettingsSheet(
-    animation: Animation,
-    currentValues: Map<String, Any?>,
-    onValueChange: (String, Any) -> Unit,
+    viewModel: WallpaperViewModel,
+    animation: Animation?,
+    context: Context,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -47,24 +62,162 @@ fun SceneSettingsSheet(
                 .padding(bottom = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            val title = animation?.displayName?.let { "$it settings" } ?: "Settings"
             Text(
-                text = "${animation.displayName} settings",
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            for (spec in animation.settings) {
-                when (spec) {
-                    is SettingSpec.Text -> TextSettingRow(spec, currentValues, onValueChange)
-                    is SettingSpec.IntRange -> IntRangeSettingRow(spec, currentValues, onValueChange)
-                    is SettingSpec.Color -> ColorSettingRow(spec, currentValues, onValueChange)
-                    is SettingSpec.Choice -> ChoiceSettingRow(spec, currentValues, onValueChange)
+
+            // Animation-specific section (only for animations with declared settings).
+            if (animation != null && animation.settings.isNotEmpty()) {
+                SectionHeader("Scene")
+                val currentValues = viewModel.sceneValues(animation)
+                for (spec in animation.settings) {
+                    when (spec) {
+                        is SettingSpec.Text -> TextSettingRow(spec, currentValues) { k, v ->
+                            viewModel.setSceneValue(animation.id, k, v)
+                        }
+                        is SettingSpec.IntRange -> IntRangeSettingRow(spec, currentValues) { k, v ->
+                            viewModel.setSceneValue(animation.id, k, v)
+                        }
+                        is SettingSpec.Color -> ColorSettingRow(spec, currentValues) { k, v ->
+                            viewModel.setSceneValue(animation.id, k, v)
+                        }
+                        is SettingSpec.Choice -> ChoiceSettingRow(spec, currentValues) { k, v ->
+                            viewModel.setSceneValue(animation.id, k, v)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(16.dp))
+            }
+
+            SectionHeader("Playback")
+            LabeledSlider(
+                label = "Speed",
+                value = viewModel.speed,
+                onValueChange = viewModel::updateSpeed,
+                valueRange = 0.05f..3f,
+                displayValue = "%.2fx".format(viewModel.speed)
+            )
+            LabeledSlider(
+                label = "Size",
+                value = viewModel.scale,
+                onValueChange = viewModel::updateScale,
+                valueRange = 0.5f..3f,
+                displayValue = "%.2fx".format(viewModel.scale)
+            )
+            LabeledSlider(
+                label = "Dim",
+                value = viewModel.dim,
+                onValueChange = viewModel::updateDim,
+                valueRange = 0f..0.9f,
+                displayValue = "${(viewModel.dim * 100).toInt()}%"
+            )
+            Spacer(Modifier.height(16.dp))
+
+            TintControls(
+                tintKind = viewModel.tintKind,
+                tintColor = viewModel.tintColor,
+                rainbowCycleSeconds = viewModel.rainbowCycleSeconds,
+                tintStrength = viewModel.tintStrength,
+                onKindChange = viewModel::updateTintKind,
+                onColorChange = viewModel::updateTintColor,
+                onRainbowCycleChange = viewModel::updateRainbowCycle,
+                onStrengthChange = viewModel::updateTintStrength
+            )
+
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(16.dp))
+
+            SectionHeader("System integration")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(Modifier.padding(end = 12.dp).run { this }) {}
+                Column(Modifier.padding(end = 12.dp)) {
+                    Text(
+                        "Sync themed icons too",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        "When syncing system colors, also open the Themed Icons setting.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = viewModel.syncThemedIcons,
+                    onCheckedChange = viewModel::updateSyncThemedIcons
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Sync system colors",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                "Sets the picked color as the wallpaper color so Material You extracts from it.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            ColorWheel(
+                initialColor = viewModel.tintColor,
+                onColorChange = viewModel::updateTintColor
+            )
+            Spacer(Modifier.height(4.dp))
+            HexColorInput(
+                color = viewModel.tintColor,
+                onColorChange = viewModel::updateTintColor
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = {
+                    val result = SystemThemeApplier.applyThemeColor(context, viewModel.tintColor)
+                    val msg = result.fold(
+                        onSuccess = { "System colors synced." },
+                        onFailure = { "Failed: ${it.message}" }
+                    )
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    if (result.isSuccess && viewModel.syncThemedIcons) {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sync system colors")
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(bottom = 4.dp)
+    )
 }
 
 @Composable
@@ -143,8 +296,6 @@ private fun ChoiceSettingRow(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
-        // Simple fallback: list each option as a tappable row. FilterChip row
-        // could replace this later if the options count grows.
         for ((id, label) in spec.options) {
             androidx.compose.material3.TextButton(
                 onClick = { onValueChange(spec.key, id) },

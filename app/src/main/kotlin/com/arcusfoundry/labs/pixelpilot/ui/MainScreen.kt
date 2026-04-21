@@ -65,13 +65,13 @@ fun MainScreen(
     val scroll = rememberScrollState()
     val currentSource = viewModel.source
 
-    var showCustomize by remember { mutableStateOf(false) }
     var showYouTube by remember { mutableStateOf(false) }
-    var sceneSettingsFor by remember {
+    // Null with `settingsOpen == true` → sheet open for a non-animation source
+    // (video). Non-null → animation-scoped sheet.
+    var settingsOpen by remember { mutableStateOf(false) }
+    var settingsAnimation by remember {
         mutableStateOf<com.arcusfoundry.labs.pixelpilot.render.Animation?>(null)
     }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -117,13 +117,21 @@ fun MainScreen(
                         currentSource = currentSource,
                         onAddVideo = onPickVideo,
                         onAddYouTube = { showYouTube = true },
-                        onOpenSceneSettings = { animation ->
-                            // Per handoff: if card isn't selected, select it first, then open sheet.
+                        onOpenAnimationSettings = { animation ->
+                            // If card isn't active, select it first then open sheet.
                             val cur = (currentSource as? WallpaperSource.Procedural)?.animationId
                             if (cur != animation.id) {
                                 viewModel.selectSource(WallpaperSource.Procedural(animation.id))
                             }
-                            sceneSettingsFor = animation
+                            settingsAnimation = animation
+                            settingsOpen = true
+                        },
+                        onOpenVideoSettings = { source ->
+                            if (currentSource?.serialize() != source.serialize()) {
+                                viewModel.selectSource(source)
+                            }
+                            settingsAnimation = null
+                            settingsOpen = true
                         }
                     )
                     Spacer(Modifier.height(80.dp))
@@ -132,41 +140,11 @@ fun MainScreen(
                 }
             }
 
-            ExtendedFloatingActionButton(
-                onClick = { showCustomize = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .align(androidx.compose.ui.Alignment.BottomCenter)
-                    .padding(bottom = 24.dp),
-                text = { Text("Customize", fontWeight = FontWeight.SemiBold) },
-                icon = { Text("✎") }
-            )
-
             VersionStamp(
                 modifier = Modifier
                     .align(androidx.compose.ui.Alignment.BottomStart)
                     .padding(start = 12.dp, bottom = 12.dp)
             )
-        }
-    }
-
-    if (showCustomize) {
-        ModalBottomSheet(
-            onDismissRequest = { showCustomize = false },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                CustomizePane(viewModel, context)
-            }
         }
     }
 
@@ -181,14 +159,12 @@ fun MainScreen(
         )
     }
 
-    sceneSettingsFor?.let { animation ->
+    if (settingsOpen) {
         SceneSettingsSheet(
-            animation = animation,
-            currentValues = viewModel.sceneValues(animation),
-            onValueChange = { key, value ->
-                viewModel.setSceneValue(animation.id, key, value)
-            },
-            onDismiss = { sceneSettingsFor = null }
+            viewModel = viewModel,
+            animation = settingsAnimation,
+            context = context,
+            onDismiss = { settingsOpen = false }
         )
     }
 }
@@ -199,7 +175,8 @@ private fun AnimationsPane(
     currentSource: WallpaperSource?,
     onAddVideo: () -> Unit,
     onAddYouTube: () -> Unit,
-    onOpenSceneSettings: (com.arcusfoundry.labs.pixelpilot.render.Animation) -> Unit
+    onOpenAnimationSettings: (com.arcusfoundry.labs.pixelpilot.render.Animation) -> Unit,
+    onOpenVideoSettings: (WallpaperSource) -> Unit
 ) {
     val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
 
@@ -223,7 +200,8 @@ private fun AnimationsPane(
                 VideoCard(
                     source = src,
                     selected = selected,
-                    onClick = { viewModel.selectSource(src) }
+                    onClick = { viewModel.selectSource(src) },
+                    onOpenSettings = { onOpenVideoSettings(src) }
                 )
             }
         }
@@ -233,7 +211,7 @@ private fun AnimationsPane(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
             onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) },
-            onOpenSettings = onOpenSceneSettings
+            onOpenSettings = onOpenAnimationSettings
         )
     }
 }

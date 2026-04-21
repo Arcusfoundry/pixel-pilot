@@ -7,9 +7,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +32,8 @@ import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 fun VideoCard(
     source: WallpaperSource,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onOpenSettings: () -> Unit = {}
 ) {
     val path: String = when (source) {
         is WallpaperSource.Video -> source.uri
@@ -85,7 +88,13 @@ fun VideoCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                if (selected) AppliedPill()
+                androidx.compose.foundation.layout.Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    VideoGearButton(onClick = onOpenSettings)
+                    if (selected) AppliedPill()
+                }
             }
             Text(
                 text = label,
@@ -95,6 +104,24 @@ fun VideoCard(
                 maxLines = 1
             )
         }
+    }
+}
+
+@Composable
+private fun VideoGearButton(onClick: () -> Unit) {
+    androidx.compose.foundation.layout.Box(
+        Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .clickable { onClick() },
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = "⚙",
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White
+        )
     }
 }
 
