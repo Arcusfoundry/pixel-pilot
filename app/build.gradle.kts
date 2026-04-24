@@ -46,6 +46,10 @@ android {
                 signingConfig = sc
             }
         }
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     compileOptions {

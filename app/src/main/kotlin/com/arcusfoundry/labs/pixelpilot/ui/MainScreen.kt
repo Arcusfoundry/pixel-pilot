@@ -47,7 +47,6 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
 import com.arcusfoundry.labs.pixelpilot.ui.components.SceneSettingsSheet
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
-import com.arcusfoundry.labs.pixelpilot.ui.components.WallpaperPreviewSurface
 import com.arcusfoundry.labs.pixelpilot.ui.components.YouTubeDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch

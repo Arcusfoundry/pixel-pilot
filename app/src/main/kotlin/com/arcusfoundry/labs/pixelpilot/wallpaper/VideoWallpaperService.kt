@@ -11,8 +11,8 @@ import android.view.SurfaceHolder
 import androidx.media3.common.util.UnstableApi
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
+import com.arcusfoundry.labs.pixelpilot.render.GlVideoRenderer
 import com.arcusfoundry.labs.pixelpilot.render.ProceduralRenderer
-import com.arcusfoundry.labs.pixelpilot.render.VideoRenderer
 import com.arcusfoundry.labs.pixelpilot.render.WallpaperRenderer
 import com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
@@ -145,8 +145,8 @@ class VideoWallpaperService : WallpaperService() {
                     val animation = AnimationRegistry.get(source.animationId) ?: AnimationRegistry.default
                     ProceduralRenderer(animation, prefs)
                 }
-                is WallpaperSource.Video -> VideoRenderer(this@VideoWallpaperService, source.uri)
-                is WallpaperSource.LocalFile -> VideoRenderer(this@VideoWallpaperService, source.path)
+                is WallpaperSource.Video -> GlVideoRenderer(this@VideoWallpaperService, source.uri)
+                is WallpaperSource.LocalFile -> GlVideoRenderer(this@VideoWallpaperService, source.path)
             }
 
             newRenderer.updateParams(prefs.renderParams())

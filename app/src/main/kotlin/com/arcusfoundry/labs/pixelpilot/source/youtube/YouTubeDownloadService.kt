@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Extracts a YouTube video's direct video stream URL via NewPipeExtractor and downloads
  * it to the app's cache directory. After download completes, the file is a plain MP4
- * that VideoRenderer can play locally, with no further network traffic.
+ * that GlVideoRenderer can play locally, with no further network traffic.
  */
 class YouTubeDownloadService(private val context: Context) {
 
