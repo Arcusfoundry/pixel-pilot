@@ -136,12 +136,28 @@ class GlVideoRenderer(
         val t = thread ?: return
         handler = null
         thread = null
-        h.post {
-            releaseVideoPipeline()
-            releaseGl()
-            releaseEgl()
-            t.quitSafely()
+        // Synchronous cleanup: the next attach will try to bind a new EGL window
+        // surface to the same wallpaper Surface. If the previous renderer's EGL
+        // surface hasn't fully released by then, eglCreateWindowSurface returns
+        // EGL_BAD_ALLOC. Wait up to 1s for cleanup to complete before returning.
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val ok = h.post {
+            try {
+                releaseVideoPipeline()
+                releaseGl()
+                releaseEgl()
+            } finally {
+                latch.countDown()
+            }
         }
+        if (ok) {
+            try {
+                latch.await(1, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+        }
+        t.quitSafely()
     }
 
     override fun release() { detach() }
@@ -155,12 +171,53 @@ class GlVideoRenderer(
         val version = IntArray(2)
         check(EGL14.eglInitialize(eglDisplay, version, 0, version, 1)) { "eglInitialize failed" }
 
-        // EGL_SURFACE_TYPE=EGL_WINDOW_BIT is required to get a config that
-        // supports eglCreateWindowSurface. Omitting it lets EGL pick any
-        // compatible config — sometimes one that supports window surfaces,
-        // sometimes not. That's the source of the "video worked sometimes,
-        // then died" reports.
-        val configAttribs = intArrayOf(
+        // Try RGBA8888 first; on EGL_BAD_ALLOC at eglCreateWindowSurface, retry
+        // with RGB888 (no alpha). Some wallpaper Surfaces are opaque RGBX and
+        // reject RGBA-typed window surface bindings.
+        val config = chooseConfig(withAlpha = true)
+            ?: chooseConfig(withAlpha = false)
+            ?: error("eglChooseConfig: no compatible config found")
+
+        val contextAttribs = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
+        eglContext = EGL14.eglCreateContext(
+            eglDisplay, config, EGL14.EGL_NO_CONTEXT, contextAttribs, 0
+        )
+        if (eglContext == EGL14.EGL_NO_CONTEXT) {
+            error("eglCreateContext failed: 0x${EGL14.eglGetError().toString(16)}")
+        }
+
+        eglSurface = EGL14.eglCreateWindowSurface(
+            eglDisplay, config, outputSurface, intArrayOf(EGL14.EGL_NONE), 0
+        )
+        if (eglSurface == EGL14.EGL_NO_SURFACE) {
+            val firstErr = EGL14.eglGetError()
+            Log.w(TAG, "primary eglCreateWindowSurface failed (0x${firstErr.toString(16)}), trying no-alpha")
+            // Tear down the just-created context and retry with no-alpha config.
+            EGL14.eglDestroyContext(eglDisplay, eglContext)
+            eglContext = EGL14.EGL_NO_CONTEXT
+            val fallback = chooseConfig(withAlpha = false)
+                ?: error("eglCreateWindowSurface failed: 0x${firstErr.toString(16)} (no fallback config)")
+            eglContext = EGL14.eglCreateContext(
+                eglDisplay, fallback, EGL14.EGL_NO_CONTEXT, contextAttribs, 0
+            )
+            if (eglContext == EGL14.EGL_NO_CONTEXT) {
+                error("eglCreateContext (fallback) failed: 0x${EGL14.eglGetError().toString(16)}")
+            }
+            eglSurface = EGL14.eglCreateWindowSurface(
+                eglDisplay, fallback, outputSurface, intArrayOf(EGL14.EGL_NONE), 0
+            )
+            if (eglSurface == EGL14.EGL_NO_SURFACE) {
+                error("eglCreateWindowSurface failed (both configs): 0x${EGL14.eglGetError().toString(16)} surface_valid=${outputSurface.isValid}")
+            }
+        }
+
+        if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+            error("eglMakeCurrent failed: 0x${EGL14.eglGetError().toString(16)}")
+        }
+    }
+
+    private fun chooseConfig(withAlpha: Boolean): EGLConfig? {
+        val attribs = if (withAlpha) intArrayOf(
             EGL14.EGL_RED_SIZE, 8,
             EGL14.EGL_GREEN_SIZE, 8,
             EGL14.EGL_BLUE_SIZE, 8,
@@ -168,33 +225,19 @@ class GlVideoRenderer(
             EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
             EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
             EGL14.EGL_NONE
+        ) else intArrayOf(
+            EGL14.EGL_RED_SIZE, 8,
+            EGL14.EGL_GREEN_SIZE, 8,
+            EGL14.EGL_BLUE_SIZE, 8,
+            EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+            EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
+            EGL14.EGL_NONE
         )
         val configs = arrayOfNulls<EGLConfig>(1)
         val numConfigs = IntArray(1)
-        if (!EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0)
-            || numConfigs[0] <= 0
-        ) {
-            error("eglChooseConfig failed: 0x${EGL14.eglGetError().toString(16)}")
-        }
-
-        val contextAttribs = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
-        eglContext = EGL14.eglCreateContext(
-            eglDisplay, configs[0], EGL14.EGL_NO_CONTEXT, contextAttribs, 0
-        )
-        if (eglContext == EGL14.EGL_NO_CONTEXT) {
-            error("eglCreateContext failed: 0x${EGL14.eglGetError().toString(16)}")
-        }
-
-        eglSurface = EGL14.eglCreateWindowSurface(
-            eglDisplay, configs[0], outputSurface, intArrayOf(EGL14.EGL_NONE), 0
-        )
-        if (eglSurface == EGL14.EGL_NO_SURFACE) {
-            error("eglCreateWindowSurface failed: 0x${EGL14.eglGetError().toString(16)}")
-        }
-
-        if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
-            error("eglMakeCurrent failed: 0x${EGL14.eglGetError().toString(16)}")
-        }
+        return if (EGL14.eglChooseConfig(eglDisplay, attribs, 0, configs, 0, 1, numConfigs, 0)
+            && numConfigs[0] > 0
+        ) configs[0] else null
     }
 
     private fun initGl() {

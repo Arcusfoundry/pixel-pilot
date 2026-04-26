@@ -90,8 +90,11 @@ class WallpaperPreferences(context: Context) {
         }
 
     fun pushRecent(serialized: String) {
-        val next = (listOf(serialized) + recents.filter { it != serialized }).take(5)
-        recents = next
+        // Stable add order: re-selecting an existing entry must not reorder
+        // the list. Tiles stay where the user put them. When the cap is
+        // exceeded, drop the oldest (leftmost) entry.
+        if (recents.contains(serialized)) return
+        recents = (recents + serialized).takeLast(5)
     }
 
     /**

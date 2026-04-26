@@ -70,6 +70,10 @@ class VideoWallpaperService : WallpaperService() {
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
             setTouchEventsEnabled(false)
+            // Pin format so EGL window surface bind matches a known config.
+            // Otherwise the surface is platform-default which can be RGBX-only
+            // and reject our RGBA8888 EGL config on eglCreateWindowSurface.
+            surfaceHolder.setFormat(android.graphics.PixelFormat.RGBA_8888)
             prefs.registerChangeListener(prefsListener)
         }
 
