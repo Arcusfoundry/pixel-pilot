@@ -116,21 +116,27 @@ fun MainScreen(
                     AnimationsPane(
                         viewModel = viewModel,
                         currentSource = currentSource,
+                        selectedSource = viewModel.selectedTile,
                         onAddVideo = onPickVideo,
                         onAddYouTube = { showYouTube = true },
-                        onOpenAnimationSettings = { animation ->
-                            // If card isn't active, select it first then open sheet.
-                            val cur = (currentSource as? WallpaperSource.Procedural)?.animationId
-                            if (cur != animation.id) {
-                                viewModel.selectSource(WallpaperSource.Procedural(animation.id))
+                        onApply = {
+                            val applied = viewModel.applySelectedAsWallpaper()
+                            // If Pixel Pilot isn't the system live wallpaper yet,
+                            // hand off to the system picker so the user can
+                            // confirm + pick home/lock/both.
+                            if (applied && !viewModel.isPixelPilotActiveWallpaper) {
+                                onSetAsWallpaper()
                             }
+                        },
+                        onOpenAnimationSettings = { animation ->
+                            // Settings are per-tile and don't change the active
+                            // wallpaper. Just sync the selection highlight.
+                            viewModel.selectTile(WallpaperSource.Procedural(animation.id))
                             settingsAnimation = animation
                             settingsOpen = true
                         },
                         onOpenVideoSettings = { source ->
-                            if (currentSource?.serialize() != source.serialize()) {
-                                viewModel.selectSource(source)
-                            }
+                            viewModel.selectTile(source)
                             settingsAnimation = null
                             settingsOpen = true
                         }
@@ -174,8 +180,10 @@ fun MainScreen(
 private fun AnimationsPane(
     viewModel: WallpaperViewModel,
     currentSource: WallpaperSource?,
+    selectedSource: WallpaperSource?,
     onAddVideo: () -> Unit,
     onAddYouTube: () -> Unit,
+    onApply: () -> Unit,
     onOpenAnimationSettings: (com.arcusfoundry.labs.pixelpilot.render.Animation) -> Unit,
     onOpenVideoSettings: (WallpaperSource) -> Unit
 ) {
@@ -197,11 +205,14 @@ private fun AnimationsPane(
                 AddCard(symbol = "▶", label = "+ YouTube", onClick = onAddYouTube)
             }
             items(userVideos) { src ->
-                val selected = currentSource?.serialize() == src.serialize()
+                val isSelected = selectedSource?.serialize() == src.serialize()
+                val isActive = currentSource?.serialize() == src.serialize()
                 VideoCard(
                     source = src,
-                    selected = selected,
-                    onClick = { viewModel.selectSource(src) },
+                    selected = isSelected,
+                    isActive = isActive,
+                    onClick = { viewModel.selectTile(src) },
+                    onApply = onApply,
                     onOpenSettings = { onOpenVideoSettings(src) }
                 )
             }
@@ -210,8 +221,10 @@ private fun AnimationsPane(
 
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
-            selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
-            onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) },
+            selectedId = (selectedSource as? WallpaperSource.Procedural)?.animationId,
+            activeId = (currentSource as? WallpaperSource.Procedural)?.animationId,
+            onSelect = { viewModel.selectTile(WallpaperSource.Procedural(it.id)) },
+            onApply = { onApply() },
             onOpenSettings = onOpenAnimationSettings
         )
     }

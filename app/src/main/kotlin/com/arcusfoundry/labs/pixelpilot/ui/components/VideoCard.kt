@@ -32,7 +32,9 @@ import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 fun VideoCard(
     source: WallpaperSource,
     selected: Boolean,
+    isActive: Boolean,
     onClick: () -> Unit,
+    onApply: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
     val path: String = when (source) {
@@ -88,7 +90,16 @@ fun VideoCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                if (selected) VideoGearButton(onClick = onOpenSettings)
+                if (selected) {
+                    androidx.compose.foundation.layout.Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        VideoGearButton(onClick = onOpenSettings)
+                        // Hide APPLY when selection already matches the active
+                        // wallpaper — there's nothing to commit.
+                        if (!isActive) VideoApplyButton(onClick = onApply)
+                    }
+                }
             }
             Text(
                 text = label,
@@ -115,6 +126,26 @@ private fun VideoGearButton(onClick: () -> Unit) {
             text = "⚙",
             style = MaterialTheme.typography.titleMedium,
             color = Color.White
+        )
+    }
+}
+
+@Composable
+private fun VideoApplyButton(onClick: () -> Unit) {
+    androidx.compose.foundation.layout.Box(
+        Modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = "APPLY",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimary
         )
     }
 }
