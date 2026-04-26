@@ -126,8 +126,43 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         private fun reloadSource() {
+            val newSource = prefs.source ?: WallpaperSource.Procedural(AnimationRegistry.default.id)
+            val typeChanging = currentSource != null
+                && rendererType(currentSource!!) != rendererType(newSource)
+
             detachRenderer()
-            attachRenderer()
+
+            if (typeChanging) {
+                // Procedural uses Canvas (lockCanvas / unlockCanvasAndPost); video
+                // uses EGL (eglCreateWindowSurface). The wallpaper Surface's
+                // BufferQueue retains the prior producer connection until the
+                // surface is destroyed. Switching producer types in place fails
+                // with EGL_BAD_ALLOC. Toggle the surface format to force the
+                // system to destroy + recreate the surface; onSurfaceChanged
+                // fires after recreate and re-attaches with the new source.
+                Log.d(TAG, "renderer type change → forcing surface recreate")
+                val sh = surfaceHolder
+                if (sh != null) {
+                    sh.setFormat(android.graphics.PixelFormat.OPAQUE)
+                    sh.setFormat(android.graphics.PixelFormat.RGBA_8888)
+                }
+                // Safety net: if the format toggle didn't trigger a recreate
+                // on this Android build, attach after a short settle delay so
+                // we don't leave the wallpaper blank.
+                mainHandler.postDelayed({
+                    if (renderer == null) {
+                        Log.d(TAG, "surface recreate didn't fire, attaching directly")
+                        attachRenderer()
+                    }
+                }, 350)
+            } else {
+                attachRenderer()
+            }
+        }
+
+        private fun rendererType(source: WallpaperSource): String = when (source) {
+            is WallpaperSource.Procedural -> "procedural"
+            is WallpaperSource.Video, is WallpaperSource.LocalFile -> "video"
         }
 
         private fun attachRenderer() {
