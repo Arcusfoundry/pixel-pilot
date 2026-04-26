@@ -155,34 +155,45 @@ class GlVideoRenderer(
         val version = IntArray(2)
         check(EGL14.eglInitialize(eglDisplay, version, 0, version, 1)) { "eglInitialize failed" }
 
+        // EGL_SURFACE_TYPE=EGL_WINDOW_BIT is required to get a config that
+        // supports eglCreateWindowSurface. Omitting it lets EGL pick any
+        // compatible config — sometimes one that supports window surfaces,
+        // sometimes not. That's the source of the "video worked sometimes,
+        // then died" reports.
         val configAttribs = intArrayOf(
             EGL14.EGL_RED_SIZE, 8,
             EGL14.EGL_GREEN_SIZE, 8,
             EGL14.EGL_BLUE_SIZE, 8,
             EGL14.EGL_ALPHA_SIZE, 8,
             EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+            EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
             EGL14.EGL_NONE
         )
         val configs = arrayOfNulls<EGLConfig>(1)
         val numConfigs = IntArray(1)
-        check(
-            EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0)
-            && numConfigs[0] > 0
-        ) { "eglChooseConfig failed" }
+        if (!EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0)
+            || numConfigs[0] <= 0
+        ) {
+            error("eglChooseConfig failed: 0x${EGL14.eglGetError().toString(16)}")
+        }
 
         val contextAttribs = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
         eglContext = EGL14.eglCreateContext(
             eglDisplay, configs[0], EGL14.EGL_NO_CONTEXT, contextAttribs, 0
         )
-        check(eglContext != EGL14.EGL_NO_CONTEXT) { "eglCreateContext failed" }
+        if (eglContext == EGL14.EGL_NO_CONTEXT) {
+            error("eglCreateContext failed: 0x${EGL14.eglGetError().toString(16)}")
+        }
 
         eglSurface = EGL14.eglCreateWindowSurface(
             eglDisplay, configs[0], outputSurface, intArrayOf(EGL14.EGL_NONE), 0
         )
-        check(eglSurface != EGL14.EGL_NO_SURFACE) { "eglCreateWindowSurface failed" }
+        if (eglSurface == EGL14.EGL_NO_SURFACE) {
+            error("eglCreateWindowSurface failed: 0x${EGL14.eglGetError().toString(16)}")
+        }
 
-        check(EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
-            "eglMakeCurrent failed"
+        if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+            error("eglMakeCurrent failed: 0x${EGL14.eglGetError().toString(16)}")
         }
     }
 
@@ -369,8 +380,9 @@ class GlVideoRenderer(
             )
             if (eglSurface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(eglDisplay, eglSurface)
             if (eglContext != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(eglDisplay, eglContext)
-            EGL14.eglReleaseThread()
-            EGL14.eglTerminate(eglDisplay)
+            // Don't eglTerminate — the display is process-shared with other EGL
+            // clients. eglMakeCurrent + destroy is sufficient cleanup for our
+            // resources.
         }
         eglSurface = EGL14.EGL_NO_SURFACE
         eglContext = EGL14.EGL_NO_CONTEXT
