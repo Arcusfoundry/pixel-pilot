@@ -21,14 +21,6 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
 
     var source by mutableStateOf<WallpaperSource?>(prefs.source)
         private set
-    /**
-     * UI-only highlight: which tile the user has tapped. Independent of
-     * [source] (the actual active wallpaper). Tap = select; APPLY = commit
-     * select to source. Initialized to current source so the active wallpaper
-     * is highlighted on first open.
-     */
-    var selectedTile by mutableStateOf<WallpaperSource?>(prefs.source)
-        private set
     var speed by mutableStateOf(prefs.speed)
         private set
     var scale by mutableStateOf(prefs.scale)
@@ -82,35 +74,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         prefs.unregisterChangeListener(prefsListener)
     }
 
-    /**
-     * Highlight a tile without applying it. Hitting APPLY commits the
-     * selection to [source] via [applySelectedAsWallpaper]. Used by tile taps.
-     */
-    fun selectTile(newSource: WallpaperSource) {
-        selectedTile = newSource
-    }
-
-    /**
-     * Commit the currently-highlighted tile as the active wallpaper. Returns
-     * true if a tile was selected (and prefs were written), false otherwise.
-     */
-    fun applySelectedAsWallpaper(): Boolean {
-        val s = selectedTile ?: return false
-        prefs.source = s
-        if (s is WallpaperSource.Video || s is WallpaperSource.LocalFile) {
-            prefs.pushRecent(s.serialize())
-        }
-        return true
-    }
-
-    /**
-     * Direct-apply path used by add-video and YouTube-download flows where
-     * the user just produced a new source and expects it to land as the
-     * wallpaper without an extra APPLY tap.
-     */
     fun selectSource(newSource: WallpaperSource) {
         prefs.source = newSource
-        selectedTile = newSource
         if (newSource is WallpaperSource.Video || newSource is WallpaperSource.LocalFile) {
             prefs.pushRecent(newSource.serialize())
         }

@@ -34,9 +34,7 @@ import com.arcusfoundry.labs.pixelpilot.render.Animation
 fun AnimationPicker(
     animationsByCategory: Map<String, List<Animation>>,
     selectedId: String?,
-    activeId: String?,
     onSelect: (Animation) -> Unit,
-    onApply: (Animation) -> Unit = {},
     onOpenSettings: (Animation) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -58,9 +56,7 @@ fun AnimationPicker(
                     AnimationCard(
                         animation = animation,
                         selected = selectedId == animation.id,
-                        isActive = activeId == animation.id,
                         onClick = { onSelect(animation) },
-                        onApply = { onApply(animation) },
                         onOpenSettings = { onOpenSettings(animation) }
                     )
                 }
@@ -74,9 +70,7 @@ fun AnimationPicker(
 private fun AnimationCard(
     animation: Animation,
     selected: Boolean,
-    isActive: Boolean,
     onClick: () -> Unit,
-    onApply: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
     val fallback = Color(animation.defaultBackground).copy(alpha = 1f)
@@ -122,14 +116,9 @@ private fun AnimationCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
-                if (selected) {
-                    androidx.compose.foundation.layout.Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        GearButton(onClick = onOpenSettings)
-                        if (!isActive) ApplyButton(onClick = onApply)
-                    }
-                }
+                // Gear appears only on the selected tile. Selection border
+                // already flags which card is active — no APPLIED pill needed.
+                if (selected) GearButton(onClick = onOpenSettings)
             }
             Text(
                 text = animation.displayName,
@@ -158,26 +147,6 @@ private fun GearButton(onClick: () -> Unit) {
             text = "⚙",
             style = MaterialTheme.typography.titleMedium,
             color = Color.White
-        )
-    }
-}
-
-@Composable
-private fun ApplyButton(onClick: () -> Unit) {
-    Box(
-        Modifier
-            .height(28.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp),
-        contentAlignment = androidx.compose.ui.Alignment.Center
-    ) {
-        Text(
-            text = "APPLY",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
         )
     }
 }
