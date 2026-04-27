@@ -49,7 +49,6 @@ import com.arcusfoundry.labs.pixelpilot.ui.components.ColorWheel
 import com.arcusfoundry.labs.pixelpilot.ui.components.HexColorInput
 import com.arcusfoundry.labs.pixelpilot.ui.components.LabeledSlider
 import com.arcusfoundry.labs.pixelpilot.ui.components.TintControls
-import com.arcusfoundry.labs.pixelpilot.ui.components.SceneSettingsSheet
 import com.arcusfoundry.labs.pixelpilot.ui.components.VideoCard
 import com.arcusfoundry.labs.pixelpilot.ui.components.YouTubeDialog
 import androidx.compose.material3.OutlinedButton
@@ -80,7 +79,18 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        // Tap-outside-to-close: when settings dropdown is open, taps anywhere
+        // not consumed by a child (tile click, slider, etc.) dismiss it. The
+        // clickable is conditional so it doesn't intercept ripples elsewhere.
+        val outerModifier = if (settingsOpen) {
+            Modifier.fillMaxSize().clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) { settingsOpen = false }
+        } else {
+            Modifier.fillMaxSize()
+        }
+        Box(modifier = outerModifier) {
             // App window is translucent via Theme.PixelPilot (windowShowWallpaper=true),
             // so the actual live system wallpaper shows through the UI. No duplicate
             // renderer needed.
@@ -101,11 +111,13 @@ fun MainScreen(
                     AnimationsPane(
                         viewModel = viewModel,
                         currentSource = currentSource,
+                        settingsOpen = settingsOpen,
+                        settingsAnimation = settingsAnimation,
+                        settingsSource = if (settingsAnimation == null) currentSource else null,
                         onAddVideo = onPickVideo,
                         onAddYouTube = { showYouTube = true },
                         onActivateWallpaper = onActivateWallpaper,
                         onOpenAnimationSettings = { animation ->
-                            // If card isn't active, select it first then open sheet.
                             val cur = (currentSource as? WallpaperSource.Procedural)?.animationId
                             if (cur != animation.id) {
                                 viewModel.selectSource(WallpaperSource.Procedural(animation.id))
@@ -152,20 +164,18 @@ fun MainScreen(
         )
     }
 
-    if (settingsOpen) {
-        SceneSettingsSheet(
-            viewModel = viewModel,
-            animation = settingsAnimation,
-            context = context,
-            onDismiss = { settingsOpen = false }
-        )
-    }
+    // Note: tile-scoped settings now live inline in the AnimationsPane as a
+    // dropdown anchored under the row containing the active tile. The
+    // SceneSettingsSheet is no longer used for that flow.
 }
 
 @Composable
 private fun AnimationsPane(
     viewModel: WallpaperViewModel,
     currentSource: WallpaperSource?,
+    settingsOpen: Boolean,
+    settingsAnimation: com.arcusfoundry.labs.pixelpilot.render.Animation?,
+    settingsSource: WallpaperSource?,
     onAddVideo: () -> Unit,
     onAddYouTube: () -> Unit,
     onActivateWallpaper: () -> Unit,
@@ -224,6 +234,23 @@ private fun AnimationsPane(
                 modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
             )
         }
+        // Inline settings dropdown for the active video tile.
+        if (settingsOpen && settingsSource != null && settingsSource !is WallpaperSource.Procedural) {
+            val activeVideoIndex = userVideos.indexOfFirst {
+                it.serialize() == settingsSource.serialize()
+            }
+            if (activeVideoIndex >= 0) {
+                // Tile index inside the row = 2 (Add video, +YouTube) + pending + index
+                val rowIndex = 2 + viewModel.pendingDownloads.size + activeVideoIndex
+                val pointerOffset = computePointerOffsetDp(videosState, rowIndex)
+                com.arcusfoundry.labs.pixelpilot.ui.components.SettingsDropdown(
+                    viewModel = viewModel,
+                    animation = null,
+                    source = settingsSource,
+                    pointerHorizontalOffset = pointerOffset
+                )
+            }
+        }
         Spacer(Modifier.height(10.dp))
 
         if (viewModel.recommendedVideos.isNotEmpty()) {
@@ -265,7 +292,17 @@ private fun AnimationsPane(
             onToggleFavorite = { animation ->
                 viewModel.toggleFavorite(WallpaperSource.Procedural(animation.id))
             },
-            onOpenSettings = onOpenAnimationSettings
+            onOpenSettings = onOpenAnimationSettings,
+            settingsAnimation = if (settingsOpen) settingsAnimation else null,
+            settingsContent = { rowState, indexInRow ->
+                val pointerOffset = computePointerOffsetDp(rowState, indexInRow)
+                com.arcusfoundry.labs.pixelpilot.ui.components.SettingsDropdown(
+                    viewModel = viewModel,
+                    animation = settingsAnimation,
+                    source = null,
+                    pointerHorizontalOffset = pointerOffset
+                )
+            }
         )
     }
 }
@@ -399,6 +436,26 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             Text("Sync system colors")
         }
     }
+}
+
+/**
+ * Compute the on-screen X offset (in dp) of the center of [targetIndex] inside
+ * [state]'s LazyRow, suitable for positioning a chevron pointer above it. If
+ * the target tile isn't currently visible, falls back to the viewport center.
+ */
+@Composable
+private fun computePointerOffsetDp(
+    state: androidx.compose.foundation.lazy.LazyListState,
+    targetIndex: Int
+): androidx.compose.ui.unit.Dp {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val info = state.layoutInfo.visibleItemsInfo.find { it.index == targetIndex }
+    val centerPx = if (info != null) {
+        info.offset + info.size / 2
+    } else {
+        state.layoutInfo.viewportSize.width / 2
+    }
+    return with(density) { centerPx.toDp() } - 6.dp
 }
 
 @Composable

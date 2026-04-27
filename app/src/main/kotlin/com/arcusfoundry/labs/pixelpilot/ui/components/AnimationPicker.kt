@@ -38,6 +38,8 @@ fun AnimationPicker(
     onSelect: (Animation) -> Unit,
     onToggleFavorite: (Animation) -> Unit,
     onOpenSettings: (Animation) -> Unit = {},
+    settingsAnimation: Animation? = null,
+    settingsContent: @Composable (rowState: androidx.compose.foundation.lazy.LazyListState, indexInRow: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -53,8 +55,8 @@ fun AnimationPicker(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
             )
+            val rowState = androidx.compose.foundation.lazy.rememberLazyListState()
             Box(modifier = Modifier.fillMaxWidth()) {
-                val rowState = androidx.compose.foundation.lazy.rememberLazyListState()
                 LazyRow(
                     state = rowState,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -74,6 +76,13 @@ fun AnimationPicker(
                     state = rowState,
                     modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
                 )
+            }
+            // If the open settings target is in this category, render its
+            // dropdown right under this row so the upward chevron points at
+            // the row's tiles.
+            if (settingsAnimation != null && settingsAnimation.category == category) {
+                val idx = animations.indexOfFirst { it.id == settingsAnimation.id }
+                if (idx >= 0) settingsContent(rowState, idx)
             }
             Spacer(Modifier.height(10.dp))
         }
