@@ -101,6 +101,10 @@ fun MainScreen(
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp, bottom = 16.dp)
             ) {
+                if (!viewModel.isPixelPilotActiveWallpaper) {
+                    SetAsWallpaperButton(onClick = onActivateWallpaper)
+                    Spacer(Modifier.height(12.dp))
+                }
 
                 Column(
                     modifier = Modifier
@@ -184,14 +188,12 @@ private fun AnimationsPane(
 ) {
     val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
 
-    // Tile click writes prefs.source. If Pixel Pilot isn't currently the
-    // active live wallpaper, no engine is listening for that pref change —
-    // the click would silently no-op. So when not active, also hand off to
-    // the system wallpaper picker so the user can confirm Pixel Pilot
-    // (preserves their pref so the picker preview shows the chosen scene).
+    // Tile click writes prefs.source. The "Set as wallpaper" button at the
+    // top of the screen handles activation when Pixel Pilot isn't yet the
+    // live wallpaper — tile taps stay quiet and don't surprise-launch any
+    // system dialogs.
     val applySource: (WallpaperSource) -> Unit = { src ->
         viewModel.selectSource(src)
-        if (!viewModel.isPixelPilotActiveWallpaper) onActivateWallpaper()
     }
 
     Column {
@@ -456,6 +458,24 @@ private fun computePointerOffsetDp(
         state.layoutInfo.viewportSize.width / 2
     }
     return with(density) { centerPx.toDp() } - 6.dp
+}
+
+@Composable
+private fun SetAsWallpaperButton(onClick: () -> Unit) {
+    androidx.compose.material3.Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
+    ) {
+        Text(
+            text = "Set as wallpaper",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
 }
 
 @Composable
