@@ -32,6 +32,30 @@ class YouTubeDownloadService(private val context: Context) {
         ensureNewPipeInitialized()
     }
 
+    /**
+     * Lightweight pre-flight: fetches title + thumbnail without downloading
+     * the video. Used to populate the in-progress download tile UI while the
+     * full download runs in the background.
+     */
+    suspend fun extractMetadata(youtubeUrl: String): Result<YouTubeMetadata> = withContext(Dispatchers.IO) {
+        runCatching {
+            ensureNewPipeInitialized()
+            val canonical = canonicalizeYouTubeUrl(youtubeUrl)
+            val service = NewPipe.getService(ServiceList.YouTube.serviceId)
+            val extractor = service.getStreamExtractor(canonical)
+            extractor.fetchPage()
+            YouTubeMetadata(
+                title = runCatching { extractor.name }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Video",
+                thumbnailUrl = runCatching { extractor.thumbnails?.firstOrNull()?.url }.getOrNull()
+            )
+        }
+    }
+
+    data class YouTubeMetadata(
+        val title: String,
+        val thumbnailUrl: String?
+    )
+
     suspend fun downloadToLocal(
         youtubeUrl: String,
         onProgress: (readBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }

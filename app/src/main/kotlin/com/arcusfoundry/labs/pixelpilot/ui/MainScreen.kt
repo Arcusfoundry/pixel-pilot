@@ -132,12 +132,8 @@ fun MainScreen(
 
     if (showYouTube) {
         YouTubeDialog(
-            downloadState = viewModel.downloadState,
-            onDownload = { viewModel.downloadYouTube(it) },
-            onDismiss = {
-                showYouTube = false
-                viewModel.clearDownloadState()
-            }
+            onSubmit = { viewModel.startBackgroundDownload(it) },
+            onDismiss = { showYouTube = false }
         )
     }
 
@@ -181,6 +177,9 @@ private fun AnimationsPane(
                 }
                 item {
                     AddCard(symbol = "▶", label = "+ YouTube", onClick = onAddYouTube)
+                }
+                items(viewModel.pendingDownloads, key = { it.id }) { download ->
+                    com.arcusfoundry.labs.pixelpilot.ui.components.DownloadingTile(download = download)
                 }
                 items(userVideos) { src ->
                     val selected = currentSource?.serialize() == src.serialize()

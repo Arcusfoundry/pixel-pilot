@@ -39,7 +39,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var recents by mutableStateOf(prefs.recents)
         private set
-    var downloadState by mutableStateOf<DownloadState>(DownloadState.Idle)
+    var pendingDownloads by mutableStateOf<List<PendingDownload>>(emptyList())
         private set
     var lastVideoError by mutableStateOf(prefs.lastVideoError)
         private set
@@ -169,25 +169,60 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         selectSource(WallpaperSource.Video(uriString))
     }
 
-    fun downloadYouTube(url: String) {
+    /**
+     * Kicks off a YouTube download in the background. Adds an entry to
+     * [pendingDownloads] (which the UI renders as a tile in the videos row),
+     * fetches the video's title + poster image, then runs the actual stream
+     * download with progress callbacks. On success the download tile is
+     * removed and the new local file is set as the active wallpaper. On
+     * failure the tile shows the error briefly, then disappears.
+     */
+    fun startBackgroundDownload(url: String) {
         if (url.isBlank()) return
-        downloadState = DownloadState.Running(0f, url)
+        val id = "${url}_${System.currentTimeMillis()}"
+        pendingDownloads = pendingDownloads + PendingDownload(
+            id = id,
+            url = url,
+            title = "Loading…",
+            thumbnailUrl = null,
+            progress = 0f,
+            errorMessage = null
+        )
+
         viewModelScope.launch {
+            // Pre-flight metadata (title + poster) so the tile has something
+            // to show before bytes start arriving.
+            val meta = youtube.extractMetadata(url).getOrNull()
+            if (meta != null) {
+                updatePendingDownload(id) {
+                    it.copy(title = meta.title, thumbnailUrl = meta.thumbnailUrl)
+                }
+            }
+
             val result = youtube.downloadToLocal(url) { read, total ->
                 val pct = if (total > 0) (read.toFloat() / total).coerceIn(0f, 1f) else 0f
-                downloadState = DownloadState.Running(pct, url)
+                updatePendingDownload(id) { it.copy(progress = pct) }
             }
-            downloadState = result.fold(
+
+            result.fold(
                 onSuccess = { file ->
+                    pendingDownloads = pendingDownloads.filter { it.id != id }
                     selectSource(WallpaperSource.LocalFile(file.absolutePath))
-                    DownloadState.Done(file.absolutePath)
                 },
-                onFailure = { DownloadState.Failed(it.message ?: "Download failed") }
+                onFailure = { e ->
+                    updatePendingDownload(id) {
+                        it.copy(errorMessage = e.message ?: "Download failed")
+                    }
+                    kotlinx.coroutines.delay(5000)
+                    pendingDownloads = pendingDownloads.filter { it.id != id }
+                }
             )
         }
     }
 
-    fun clearDownloadState() { downloadState = DownloadState.Idle }
+    private fun updatePendingDownload(id: String, transform: (PendingDownload) -> PendingDownload) {
+        pendingDownloads = pendingDownloads.map { if (it.id == id) transform(it) else it }
+    }
 
     /** Re-check whether Pixel Pilot is the active system wallpaper. Call on activity resume. */
     fun refreshActiveWallpaperStatus() {
@@ -199,10 +234,12 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         return wm.wallpaperInfo?.component?.packageName == context.packageName
     }
 
-    sealed class DownloadState {
-        data object Idle : DownloadState()
-        data class Running(val progress: Float, val url: String) : DownloadState()
-        data class Done(val path: String) : DownloadState()
-        data class Failed(val reason: String) : DownloadState()
-    }
+    data class PendingDownload(
+        val id: String,
+        val url: String,
+        val title: String,
+        val thumbnailUrl: String?,
+        val progress: Float,
+        val errorMessage: String?
+    )
 }
