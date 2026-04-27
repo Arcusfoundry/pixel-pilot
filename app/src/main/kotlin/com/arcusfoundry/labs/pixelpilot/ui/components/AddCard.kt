@@ -37,7 +37,7 @@ fun AddCard(
             .width(140.dp)
             .height(100.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+            .background(MaterialTheme.colorScheme.surface)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
