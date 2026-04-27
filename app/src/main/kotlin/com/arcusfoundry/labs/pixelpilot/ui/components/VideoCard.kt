@@ -85,11 +85,15 @@ fun VideoCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = androidx.compose.ui.Alignment.Top
             ) {
-                FavoriteStarBadge(
-                    favorited = isFavorite,
-                    onClick = onToggleFavorite
-                )
-                if (selected) VideoGearButton(onClick = onOpenSettings)
+                if (selected) {
+                    FavoriteStarBadge(
+                        favorited = isFavorite,
+                        onClick = onToggleFavorite
+                    )
+                    VideoGearButton(onClick = onOpenSettings)
+                } else {
+                    androidx.compose.foundation.layout.Spacer(Modifier)
+                }
             }
             Text(
                 text = label,

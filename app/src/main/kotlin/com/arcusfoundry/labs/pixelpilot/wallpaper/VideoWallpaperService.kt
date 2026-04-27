@@ -128,14 +128,26 @@ class VideoWallpaperService : WallpaperService() {
 
         private fun maybeShuffleToFavorite() {
             val now = System.currentTimeMillis()
-            if (now - prefs.lastShuffleAt < SHUFFLE_THROTTLE_MS) return
+            val sinceLast = now - prefs.lastShuffleAt
+            if (sinceLast < SHUFFLE_THROTTLE_MS) {
+                Log.d(TAG, "shuffle throttled (${sinceLast}ms since last)")
+                return
+            }
             val favorites = prefs.allFavorites()
                 .mapNotNull { WallpaperSource.parse(it) }
                 .filter { isReachable(it) }
-            if (favorites.isEmpty()) return
+            if (favorites.isEmpty()) {
+                Log.d(TAG, "shuffle skipped: no reachable favorites")
+                return
+            }
             val currentKey = currentSource?.serialize()
             val pool = favorites.filter { it.serialize() != currentKey }
-            val pick = (pool.takeIf { it.isNotEmpty() } ?: favorites).random()
+            if (pool.isEmpty()) {
+                Log.d(TAG, "shuffle skipped: only one favorite, would pick the same one")
+                return
+            }
+            val pick = pool.random()
+            Log.d(TAG, "shuffle: ${currentKey} → ${pick.serialize()} (pool=${pool.size})")
             prefs.lastShuffleAt = now
             prefs.source = pick
         }
@@ -197,7 +209,7 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         private val TAG = "PixelPilotEngine"
-        private val SHUFFLE_THROTTLE_MS = 30_000L
+        private val SHUFFLE_THROTTLE_MS = 5_000L
 
         private fun detachRenderer() {
             renderer?.release()

@@ -258,7 +258,13 @@ private fun AnimationsPane(
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
+            isFavorite = { animId ->
+                viewModel.isFavorite(WallpaperSource.Procedural(animId))
+            },
             onSelect = { applySource(WallpaperSource.Procedural(it.id)) },
+            onToggleFavorite = { animation ->
+                viewModel.toggleFavorite(WallpaperSource.Procedural(animation.id))
+            },
             onOpenSettings = onOpenAnimationSettings
         )
     }

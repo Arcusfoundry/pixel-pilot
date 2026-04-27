@@ -34,7 +34,9 @@ import com.arcusfoundry.labs.pixelpilot.render.Animation
 fun AnimationPicker(
     animationsByCategory: Map<String, List<Animation>>,
     selectedId: String?,
+    isFavorite: (String) -> Boolean,
     onSelect: (Animation) -> Unit,
+    onToggleFavorite: (Animation) -> Unit,
     onOpenSettings: (Animation) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -61,7 +63,9 @@ fun AnimationPicker(
                         AnimationCard(
                             animation = animation,
                             selected = selectedId == animation.id,
+                            isFavorite = isFavorite(animation.id),
                             onClick = { onSelect(animation) },
+                            onToggleFavorite = { onToggleFavorite(animation) },
                             onOpenSettings = { onOpenSettings(animation) }
                         )
                     }
@@ -80,7 +84,9 @@ fun AnimationPicker(
 private fun AnimationCard(
     animation: Animation,
     selected: Boolean,
+    isFavorite: Boolean,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onOpenSettings: () -> Unit = {}
 ) {
     val fallback = Color(animation.defaultBackground).copy(alpha = 1f)
@@ -121,13 +127,16 @@ private fun AnimationCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = androidx.compose.ui.Alignment.Top
             ) {
-                Text(
-                    text = animation.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-                // Gear appears only on the selected tile. Selection border
-                // already flags which card is active — no APPLIED pill needed.
+                if (selected) {
+                    FavoriteStarBadge(favorited = isFavorite, onClick = onToggleFavorite)
+                } else {
+                    Text(
+                        text = animation.category,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+                // Gear appears only on the selected tile.
                 if (selected) GearButton(onClick = onOpenSettings)
             }
             Text(
@@ -137,6 +146,28 @@ private fun AnimationCard(
                 color = Color.White
             )
         }
+    }
+}
+
+@Composable
+private fun FavoriteStarBadge(favorited: Boolean, onClick: () -> Unit) {
+    val bg = if (favorited) MaterialTheme.colorScheme.primary
+    else Color.Black.copy(alpha = 0.55f)
+    val fg = if (favorited) MaterialTheme.colorScheme.onPrimary
+    else Color.White.copy(alpha = 0.9f)
+    Box(
+        Modifier
+            .size(32.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .clickable { onClick() },
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = if (favorited) "★" else "☆",
+            style = MaterialTheme.typography.titleMedium,
+            color = fg
+        )
     }
 }
 
