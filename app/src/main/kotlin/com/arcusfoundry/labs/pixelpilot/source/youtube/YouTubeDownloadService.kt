@@ -38,8 +38,12 @@ class YouTubeDownloadService(private val context: Context) {
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
             ensureNewPipeInitialized()
+            val canonicalUrl = canonicalizeYouTubeUrl(youtubeUrl)
+            if (canonicalUrl != youtubeUrl) {
+                Log.i(TAG, "Normalized URL: $youtubeUrl → $canonicalUrl")
+            }
             val service = NewPipe.getService(ServiceList.YouTube.serviceId)
-            val extractor = service.getStreamExtractor(youtubeUrl)
+            val extractor = service.getStreamExtractor(canonicalUrl)
             extractor.fetchPage()
 
             // Progressive HTTP streams only — single-URL complete files that
@@ -51,9 +55,13 @@ class YouTubeDownloadService(private val context: Context) {
             val progressive = allCandidates.filter {
                 it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP
             }
+            // Log all candidate resolutions so we can see what YouTube actually
+            // surfaces for typical videos. Progressive caps out around 720p for
+            // most content; higher resolutions (1080p+) are usually DASH-only.
             Log.w(TAG, "candidates total=${allCandidates.size} progressive=${progressive.size}")
-            val videoStream = (if (progressive.isNotEmpty()) progressive else allCandidates)
-                .maxByOrNull { it.resolution?.let { r -> parseResolution(r) } ?: 0 }
+            progressive.forEach { Log.i(TAG, "  progressive: ${it.resolution} ${it.format}") }
+            val pool = if (progressive.isNotEmpty()) progressive else allCandidates
+            val videoStream = pickBestStream(pool)
                 ?: throw IllegalStateException("No playable video streams found")
 
             val streamUrl = videoStream.content ?: error("Missing stream URL")
@@ -96,6 +104,32 @@ class YouTubeDownloadService(private val context: Context) {
         raw.takeWhile { it.isDigit() }.toIntOrNull() ?: 0
 
     /**
+     * Picks the stream whose resolution best matches the device's display.
+     * Prefers the smallest stream at or above the device's longer dimension
+     * (so we don't upscale visibly); falls back to the highest available if
+     * everything is below that threshold (typical for YouTube progressive,
+     * which often caps at 720p — high-res 1080p+ is DASH-only).
+     */
+    private fun pickBestStream(
+        candidates: List<org.schabi.newpipe.extractor.stream.VideoStream>
+    ): org.schabi.newpipe.extractor.stream.VideoStream? {
+        if (candidates.isEmpty()) return null
+        val target = targetVideoHeight()
+        val sortedAsc = candidates.sortedBy { parseResolution(it.resolution.orEmpty()) }
+        val atOrAbove = sortedAsc.firstOrNull {
+            parseResolution(it.resolution.orEmpty()) >= target
+        }
+        val chosen = atOrAbove ?: sortedAsc.last()
+        Log.i(TAG, "targetHeight=$target chosen=${chosen.resolution}")
+        return chosen
+    }
+
+    private fun targetVideoHeight(): Int {
+        val dm = context.resources.displayMetrics
+        return maxOf(dm.heightPixels, dm.widthPixels)
+    }
+
+    /**
      * Sniffs the file's leading bytes for a known container header. Catches
      * the case where NewPipe returned a URL whose HTTP response body is
      * something other than a playable video (e.g. a JSON error, HTML, or
@@ -130,6 +164,44 @@ class YouTubeDownloadService(private val context: Context) {
             if (initialized) return
             NewPipe.init(NewPipeDownloader.getInstance(), Localization.DEFAULT)
             initialized = true
+        }
+
+        /**
+         * Maps YouTube's various URL forms onto the canonical
+         * `https://www.youtube.com/watch?v=ID` form that NewPipe extracts
+         * reliably. NewPipe can sometimes choke on short/mobile/shorts URLs.
+         *
+         * Handles:
+         *   - youtu.be/ID
+         *   - m.youtube.com/watch?v=ID  (and any other host prefix variant)
+         *   - www.youtube.com/shorts/ID
+         *   - youtube.com/embed/ID
+         *   - youtube.com/v/ID
+         *   - youtube.com/live/ID
+         * Strips extra query params (only keeps the v=ID).
+         */
+        internal fun canonicalizeYouTubeUrl(input: String): String {
+            val trimmed = input.trim()
+
+            // youtu.be/<ID>?...
+            Regex("""(?:https?://)?(?:www\.)?youtu\.be/([A-Za-z0-9_-]{11})""")
+                .find(trimmed)?.let { m ->
+                    return "https://www.youtube.com/watch?v=${m.groupValues[1]}"
+                }
+
+            // youtube.com/shorts/<ID>, /embed/<ID>, /v/<ID>, /live/<ID>
+            Regex("""(?:https?://)?(?:[a-z]+\.)?youtube\.com/(?:shorts|embed|v|live)/([A-Za-z0-9_-]{11})""")
+                .find(trimmed)?.let { m ->
+                    return "https://www.youtube.com/watch?v=${m.groupValues[1]}"
+                }
+
+            // youtube.com/watch?v=<ID>... — normalize host to www, drop other params.
+            Regex("""(?:https?://)?(?:[a-z]+\.)?youtube\.com/watch\?(?:[^#&]*&)*v=([A-Za-z0-9_-]{11})""")
+                .find(trimmed)?.let { m ->
+                    return "https://www.youtube.com/watch?v=${m.groupValues[1]}"
+                }
+
+            return trimmed
         }
     }
 }

@@ -57,8 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(
     viewModel: WallpaperViewModel,
-    onPickVideo: () -> Unit,
-    onSetAsWallpaper: () -> Unit
+    onPickVideo: () -> Unit
 ) {
     val context = LocalContext.current
     val scroll = rememberScrollState()
@@ -88,24 +87,6 @@ fun MainScreen(
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp, bottom = 16.dp)
             ) {
-                if (!viewModel.isPixelPilotActiveWallpaper) {
-                    ActivationBanner(onActivate = onSetAsWallpaper)
-                    Spacer(Modifier.height(12.dp))
-                }
-                viewModel.lastVideoError?.let { err ->
-                    PlaybackErrorBanner(err)
-                    Spacer(Modifier.height(12.dp))
-                }
-                val isVideoSource = currentSource is WallpaperSource.Video ||
-                    currentSource is WallpaperSource.LocalFile
-                if (isVideoSource) {
-                    viewModel.lastVideoState?.let { state ->
-                        if (!state.contains("READY")) {
-                            PlaybackStateBanner(state)
-                            Spacer(Modifier.height(12.dp))
-                        }
-                    }
-                }
 
                 Column(
                     modifier = Modifier
@@ -344,76 +325,6 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sync system colors")
-        }
-    }
-}
-
-@Composable
-private fun PlaybackStateBanner(state: String) {
-    androidx.compose.material3.Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
-            Text(
-                "Playback state",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                state,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlaybackErrorBanner(message: String) {
-    androidx.compose.material3.Surface(
-        color = MaterialTheme.colorScheme.errorContainer,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(
-                "Video playback error",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActivationBanner(onActivate: () -> Unit) {
-    androidx.compose.material3.Surface(
-        onClick = onActivate,
-        color = MaterialTheme.colorScheme.primary,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(
-                "Tap to activate Pixel Pilot",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "Once it's your wallpaper, every selection applies instantly.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-            )
         }
     }
 }
