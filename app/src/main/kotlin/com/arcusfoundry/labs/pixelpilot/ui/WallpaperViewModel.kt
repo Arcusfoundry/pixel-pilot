@@ -21,6 +21,9 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
 
     var source by mutableStateOf<WallpaperSource?>(prefs.source)
         private set
+    // Playback params reflect the active scene's per-scene overrides for
+    // procedural sources, falling back to globals. Video sources show
+    // globals (per-video config can come later if useful).
     var speed by mutableStateOf(prefs.speed)
         private set
     var scale by mutableStateOf(prefs.scale)
@@ -34,6 +37,10 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     var rainbowCycleSeconds by mutableStateOf(prefs.rainbowCycleSeconds)
         private set
     var tintStrength by mutableStateOf(prefs.tintStrength)
+        private set
+    var shuffleEnabled by mutableStateOf(prefs.shuffleEnabled)
+        private set
+    var favoriteIds by mutableStateOf<Set<String>>(prefs.allFavorites().toSet())
         private set
     var syncThemedIcons by mutableStateOf(prefs.syncThemedIcons)
         private set
@@ -49,24 +56,61 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        when (key) {
-            WallpaperPreferences.KEY_SOURCE -> source = prefs.source
-            WallpaperPreferences.KEY_SPEED -> speed = prefs.speed
-            WallpaperPreferences.KEY_SCALE -> scale = prefs.scale
-            WallpaperPreferences.KEY_DIM -> dim = prefs.dim
-            WallpaperPreferences.KEY_TINT_KIND -> tintKind = prefs.tintKind
-            WallpaperPreferences.KEY_TINT_COLOR -> tintColor = prefs.tintColor
-            WallpaperPreferences.KEY_RAINBOW_CYCLE -> rainbowCycleSeconds = prefs.rainbowCycleSeconds
-            WallpaperPreferences.KEY_TINT_STRENGTH -> tintStrength = prefs.tintStrength
-            WallpaperPreferences.KEY_SYNC_THEMED_ICONS -> syncThemedIcons = prefs.syncThemedIcons
-            WallpaperPreferences.KEY_RECENTS -> recents = prefs.recents
-            WallpaperPreferences.KEY_LAST_VIDEO_ERROR -> lastVideoError = prefs.lastVideoError
-            WallpaperPreferences.KEY_LAST_VIDEO_STATE -> lastVideoState = prefs.lastVideoState
+        when {
+            key == WallpaperPreferences.KEY_SOURCE -> {
+                source = prefs.source
+                refreshActiveSceneParams()
+            }
+            key == WallpaperPreferences.KEY_SYNC_THEMED_ICONS ->
+                syncThemedIcons = prefs.syncThemedIcons
+            key == WallpaperPreferences.KEY_RECENTS -> recents = prefs.recents
+            key == WallpaperPreferences.KEY_LAST_VIDEO_ERROR -> lastVideoError = prefs.lastVideoError
+            key == WallpaperPreferences.KEY_LAST_VIDEO_STATE -> lastVideoState = prefs.lastVideoState
+            key == WallpaperPreferences.KEY_SHUFFLE_ENABLED ->
+                shuffleEnabled = prefs.shuffleEnabled
+            key != null && key.startsWith(WallpaperPreferences.FAVORITE_PREFIX) ->
+                favoriteIds = prefs.allFavorites().toSet()
+            // Per-scene param updates only refresh the UI when they belong to
+            // the currently-active animation. Other scenes' overrides change
+            // silently in storage.
+            key != null && key.startsWith(WallpaperPreferences.SCENE_PARAM_PREFIX) -> {
+                val activeId = (prefs.source as? WallpaperSource.Procedural)?.animationId
+                if (activeId != null && prefs.isSceneParamKeyFor(activeId, key)) {
+                    refreshActiveSceneParams()
+                }
+            }
         }
     }
 
     init {
         prefs.registerChangeListener(prefsListener)
+        refreshActiveSceneParams()
+    }
+
+    /**
+     * Reload the seven playback param state vars from the active scene's
+     * overrides. Call after the source changes or when one of the active
+     * scene's per-scene params changes externally.
+     */
+    private fun refreshActiveSceneParams() {
+        val animId = (prefs.source as? WallpaperSource.Procedural)?.animationId
+        if (animId != null) {
+            speed = prefs.sceneSpeed(animId)
+            scale = prefs.sceneScale(animId)
+            dim = prefs.sceneDim(animId)
+            tintKind = prefs.sceneTintKind(animId)
+            tintColor = prefs.sceneTintColor(animId)
+            rainbowCycleSeconds = prefs.sceneRainbowCycle(animId)
+            tintStrength = prefs.sceneTintStrength(animId)
+        } else {
+            speed = prefs.speed
+            scale = prefs.scale
+            dim = prefs.dim
+            tintKind = prefs.tintKind
+            tintColor = prefs.tintColor
+            rainbowCycleSeconds = prefs.rainbowCycleSeconds
+            tintStrength = prefs.tintStrength
+        }
     }
 
     override fun onCleared() {
@@ -128,14 +172,47 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun updateSpeed(v: Float) { prefs.speed = v }
-    fun updateScale(v: Float) { prefs.scale = v }
-    fun updateDim(v: Float) { prefs.dim = v }
-    fun updateTintKind(kind: String) { prefs.tintKind = kind }
-    fun updateTintColor(color: Int) { prefs.tintColor = color }
-    fun updateRainbowCycle(seconds: Float) { prefs.rainbowCycleSeconds = seconds }
-    fun updateTintStrength(v: Float) { prefs.tintStrength = v }
+    // Per-scene param writes go to the active animation's namespace if a
+    // procedural source is active. For video sources (or no source), fall
+    // back to global prefs so the slider still does something.
+    private val activeAnimId: String?
+        get() = (prefs.source as? WallpaperSource.Procedural)?.animationId
+
+    fun updateSpeed(v: Float) {
+        speed = v
+        activeAnimId?.let { prefs.setSceneSpeed(it, v) } ?: run { prefs.speed = v }
+    }
+    fun updateScale(v: Float) {
+        scale = v
+        activeAnimId?.let { prefs.setSceneScale(it, v) } ?: run { prefs.scale = v }
+    }
+    fun updateDim(v: Float) {
+        dim = v
+        activeAnimId?.let { prefs.setSceneDim(it, v) } ?: run { prefs.dim = v }
+    }
+    fun updateTintKind(kind: String) {
+        tintKind = kind
+        activeAnimId?.let { prefs.setSceneTintKind(it, kind) } ?: run { prefs.tintKind = kind }
+    }
+    fun updateTintColor(color: Int) {
+        tintColor = color
+        activeAnimId?.let { prefs.setSceneTintColor(it, color) } ?: run { prefs.tintColor = color }
+    }
+    fun updateRainbowCycle(seconds: Float) {
+        rainbowCycleSeconds = seconds
+        activeAnimId?.let { prefs.setSceneRainbowCycle(it, seconds) } ?: run { prefs.rainbowCycleSeconds = seconds }
+    }
+    fun updateTintStrength(v: Float) {
+        tintStrength = v
+        activeAnimId?.let { prefs.setSceneTintStrength(it, v) } ?: run { prefs.tintStrength = v }
+    }
     fun updateSyncThemedIcons(v: Boolean) { prefs.syncThemedIcons = v }
+
+    fun isFavorite(animationId: String): Boolean = favoriteIds.contains(animationId)
+    fun toggleFavorite(animationId: String) {
+        prefs.setFavorite(animationId, !prefs.isFavorite(animationId))
+    }
+    fun setShuffleEnabled(value: Boolean) { prefs.shuffleEnabled = value }
 
     /** Current scene-scoped values for an animation, folded with each spec's default. */
     fun sceneValues(animation: com.arcusfoundry.labs.pixelpilot.render.Animation): Map<String, Any?> {

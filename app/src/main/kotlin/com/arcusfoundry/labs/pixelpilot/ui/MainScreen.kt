@@ -3,7 +3,11 @@ package com.arcusfoundry.labs.pixelpilot.ui
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,8 +83,14 @@ fun MainScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             // App window is translucent via Theme.PixelPilot (windowShowWallpaper=true),
             // so the actual live system wallpaper shows through the UI. No duplicate
-            // renderer needed. If Pixel Pilot isn't the active wallpaper yet, whatever
-            // IS active shows through — the activation banner prompts the user to fix.
+            // renderer needed.
+            ShuffleButton(
+                enabled = viewModel.shuffleEnabled,
+                onToggle = { viewModel.setShuffleEnabled(!viewModel.shuffleEnabled) },
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment.TopEnd)
+                    .padding(top = 14.dp, end = 14.dp)
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -348,6 +358,33 @@ private fun SystemIntegrationSection(viewModel: WallpaperViewModel, context: Con
         ) {
             Text("Sync system colors")
         }
+    }
+}
+
+@Composable
+private fun ShuffleButton(
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = if (enabled) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+    val fg = if (enabled) MaterialTheme.colorScheme.onPrimary
+    else MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .clickable(onClick = onToggle),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = "⤭",
+            style = MaterialTheme.typography.titleLarge,
+            color = fg,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

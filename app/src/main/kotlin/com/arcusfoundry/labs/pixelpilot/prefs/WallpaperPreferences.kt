@@ -140,20 +140,97 @@ class WallpaperPreferences(context: Context) {
     fun isSceneKeyFor(animationId: String, key: String?): Boolean =
         key != null && key.startsWith("$SCENE_KEY_PREFIX$animationId:")
 
+    /**
+     * Per-scene playback param overrides keyed by animation id. A scene without
+     * its own override falls back to the corresponding global value, which acts
+     * as a "factory default" for new scenes. Switching scenes restores each
+     * one's saved values.
+     */
+    fun sceneSpeed(animationId: String): Float =
+        prefs.getFloat(sceneParamKey(animationId, KEY_SPEED), speed)
+    fun sceneScale(animationId: String): Float =
+        prefs.getFloat(sceneParamKey(animationId, KEY_SCALE), scale)
+    fun sceneDim(animationId: String): Float =
+        prefs.getFloat(sceneParamKey(animationId, KEY_DIM), dim)
+    fun sceneTintKind(animationId: String): String =
+        prefs.getString(sceneParamKey(animationId, KEY_TINT_KIND), null) ?: tintKind
+    fun sceneTintColor(animationId: String): Int =
+        prefs.getInt(sceneParamKey(animationId, KEY_TINT_COLOR), tintColor)
+    fun sceneRainbowCycle(animationId: String): Float =
+        prefs.getFloat(sceneParamKey(animationId, KEY_RAINBOW_CYCLE), rainbowCycleSeconds)
+    fun sceneTintStrength(animationId: String): Float =
+        prefs.getFloat(sceneParamKey(animationId, KEY_TINT_STRENGTH), tintStrength)
+
+    fun setSceneSpeed(animationId: String, value: Float) =
+        prefs.edit { putFloat(sceneParamKey(animationId, KEY_SPEED), value) }
+    fun setSceneScale(animationId: String, value: Float) =
+        prefs.edit { putFloat(sceneParamKey(animationId, KEY_SCALE), value) }
+    fun setSceneDim(animationId: String, value: Float) =
+        prefs.edit { putFloat(sceneParamKey(animationId, KEY_DIM), value) }
+    fun setSceneTintKind(animationId: String, value: String) =
+        prefs.edit { putString(sceneParamKey(animationId, KEY_TINT_KIND), value) }
+    fun setSceneTintColor(animationId: String, value: Int) =
+        prefs.edit { putInt(sceneParamKey(animationId, KEY_TINT_COLOR), value) }
+    fun setSceneRainbowCycle(animationId: String, value: Float) =
+        prefs.edit { putFloat(sceneParamKey(animationId, KEY_RAINBOW_CYCLE), value) }
+    fun setSceneTintStrength(animationId: String, value: Float) =
+        prefs.edit { putFloat(sceneParamKey(animationId, KEY_TINT_STRENGTH), value) }
+
+    private fun sceneParamKey(animationId: String, paramKey: String): String =
+        "$SCENE_PARAM_PREFIX$animationId:$paramKey"
+
+    /** True if [key] is one of the per-scene playback param keys for [animationId]. */
+    fun isSceneParamKeyFor(animationId: String, key: String?): Boolean =
+        key != null && key.startsWith("$SCENE_PARAM_PREFIX$animationId:")
+
     fun renderParams(): RenderParams {
-        val tintMode = when (tintKind) {
-            "static" -> TintMode.Static(tintColor)
-            "rainbow" -> TintMode.Rainbow(rainbowCycleSeconds)
-            else -> TintMode.None
-        }
-        return RenderParams(
+        val animId = (source as? WallpaperSource.Procedural)?.animationId
+        return if (animId != null) sceneRenderParams(animId)
+        else RenderParams(
             speed = speed,
             scale = scale,
             dim = dim,
-            tint = tintMode,
+            tint = when (tintKind) {
+                "static" -> TintMode.Static(tintColor)
+                "rainbow" -> TintMode.Rainbow(rainbowCycleSeconds)
+                else -> TintMode.None
+            },
             tintStrength = tintStrength
         )
     }
+
+    fun sceneRenderParams(animationId: String): RenderParams {
+        val tintKindLocal = sceneTintKind(animationId)
+        val tintMode = when (tintKindLocal) {
+            "static" -> TintMode.Static(sceneTintColor(animationId))
+            "rainbow" -> TintMode.Rainbow(sceneRainbowCycle(animationId))
+            else -> TintMode.None
+        }
+        return RenderParams(
+            speed = sceneSpeed(animationId),
+            scale = sceneScale(animationId),
+            dim = sceneDim(animationId),
+            tint = tintMode,
+            tintStrength = sceneTintStrength(animationId)
+        )
+    }
+
+    fun isFavorite(animationId: String): Boolean =
+        prefs.getBoolean("$FAVORITE_PREFIX$animationId", false)
+    fun setFavorite(animationId: String, value: Boolean) =
+        prefs.edit { putBoolean("$FAVORITE_PREFIX$animationId", value) }
+    fun allFavorites(): List<String> = prefs.all
+        .filter { (k, v) -> k.startsWith(FAVORITE_PREFIX) && v == true }
+        .keys
+        .map { it.removePrefix(FAVORITE_PREFIX) }
+
+    var shuffleEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SHUFFLE_ENABLED, false)
+        set(value) = prefs.edit { putBoolean(KEY_SHUFFLE_ENABLED, value) }
+
+    var lastShuffleAt: Long
+        get() = prefs.getLong(KEY_LAST_SHUFFLE_AT, 0L)
+        set(value) = prefs.edit { putLong(KEY_LAST_SHUFFLE_AT, value) }
 
     fun registerChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -178,7 +255,11 @@ class WallpaperPreferences(context: Context) {
         const val KEY_LAST_VIDEO_ERROR = "last_video_error"
         const val KEY_LAST_VIDEO_STATE = "last_video_state"
         const val KEY_RECENTS = "recents"
+        const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
+        const val KEY_LAST_SHUFFLE_AT = "last_shuffle_at"
         const val SCENE_KEY_PREFIX = "scene:"
+        const val SCENE_PARAM_PREFIX = "sceneparam:"
+        const val FAVORITE_PREFIX = "fav:"
 
         val ALL_PARAM_KEYS = setOf(
             KEY_SOURCE, KEY_SPEED, KEY_SCALE, KEY_DIM,

@@ -66,13 +66,31 @@ fun SceneSettingsSheet(
                 .verticalScroll(rememberScrollState())
         ) {
             val title = animation?.displayName?.let { "$it settings" } ?: "Settings"
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (animation != null) {
+                    val isFav = viewModel.isFavorite(animation.id)
+                    androidx.compose.material3.IconButton(
+                        onClick = { viewModel.toggleFavorite(animation.id) }
+                    ) {
+                        Text(
+                            text = if (isFav) "★" else "☆",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = if (isFav) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
 
             // Animation-specific section (only for animations with declared settings).
             if (animation != null && animation.settings.isNotEmpty()) {

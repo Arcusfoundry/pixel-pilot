@@ -56,6 +56,14 @@ class VideoWallpaperService : WallpaperService() {
                         }
                     }
                 }
+                key.startsWith(WallpaperPreferences.SCENE_PARAM_PREFIX) -> {
+                    // Per-scene playback params: refresh only if the change is
+                    // for the active scene (other scenes' values mutate silently).
+                    val activeId = (currentSource as? WallpaperSource.Procedural)?.animationId
+                    if (activeId != null && prefs.isSceneParamKeyFor(activeId, key)) {
+                        mainHandler.post { renderer?.updateParams(prefs.renderParams()) }
+                    }
+                }
                 key in WallpaperPreferences.ALL_PARAM_KEYS ->
                     mainHandler.post { renderer?.updateParams(prefs.renderParams()) }
             }
@@ -110,6 +118,24 @@ class VideoWallpaperService : WallpaperService() {
                 attachRenderer()
             }
             renderer?.setVisible(visible)
+            // Shuffle-on-wake: a transition to visible covers both screen-wake
+            // (off → on) and unlock (locked → unlocked). Throttled to avoid
+            // churning when the user repeatedly opens/closes apps.
+            if (visible && prefs.shuffleEnabled) {
+                maybeShuffleToFavorite()
+            }
+        }
+
+        private fun maybeShuffleToFavorite() {
+            val now = System.currentTimeMillis()
+            if (now - prefs.lastShuffleAt < SHUFFLE_THROTTLE_MS) return
+            val favorites = prefs.allFavorites()
+            if (favorites.isEmpty()) return
+            val current = (currentSource as? WallpaperSource.Procedural)?.animationId
+            val candidates = favorites.filter { it != current && AnimationRegistry.get(it) != null }
+            val pick = (candidates.takeIf { it.isNotEmpty() } ?: favorites).random()
+            prefs.lastShuffleAt = now
+            prefs.source = WallpaperSource.Procedural(pick)
         }
 
         override fun onSurfaceRedrawNeeded(holder: SurfaceHolder) {
@@ -162,6 +188,7 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         private val TAG = "PixelPilotEngine"
+        private val SHUFFLE_THROTTLE_MS = 30_000L
 
         private fun detachRenderer() {
             renderer?.release()
