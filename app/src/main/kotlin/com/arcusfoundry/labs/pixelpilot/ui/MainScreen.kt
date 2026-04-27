@@ -204,8 +204,8 @@ private fun AnimationsPane(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
         )
+        val videosState = androidx.compose.foundation.lazy.rememberLazyListState()
         Box(modifier = Modifier.fillMaxWidth()) {
-            val videosState = androidx.compose.foundation.lazy.rememberLazyListState()
             LazyRow(
                 state = videosState,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

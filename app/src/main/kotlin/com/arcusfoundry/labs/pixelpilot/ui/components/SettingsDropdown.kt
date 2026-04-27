@@ -17,6 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -201,10 +205,8 @@ private fun SceneSettingRow(
 ) {
     when (spec) {
         is SettingSpec.Text -> {
-            var text by androidx.compose.runtime.remember(spec.key, values[spec.key]) {
-                androidx.compose.runtime.mutableStateOf(
-                    (values[spec.key] as? String) ?: spec.default
-                )
+            var text by remember(spec.key, values[spec.key]) {
+                mutableStateOf((values[spec.key] as? String) ?: spec.default)
             }
             androidx.compose.material3.OutlinedTextField(
                 value = text,
@@ -242,17 +244,18 @@ private fun SceneSettingRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (option in spec.options) {
-                    val isSelected = option == current
+                // SettingSpec.Choice.options is List<Pair<value, displayLabel>>.
+                for ((value, label) in spec.options) {
+                    val isSelected = value == current
                     OutlinedButton(
-                        onClick = { onChange(spec.key, option) },
+                        onClick = { onChange(spec.key, value) },
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(
                             horizontal = 10.dp,
                             vertical = 4.dp
                         )
                     ) {
                         Text(
-                            text = option,
+                            text = label,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
