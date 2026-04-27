@@ -11,6 +11,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
+import com.arcusfoundry.labs.pixelpilot.source.youtube.RecommendedVideo
+import com.arcusfoundry.labs.pixelpilot.source.youtube.RecommendedVideosFetcher
 import com.arcusfoundry.labs.pixelpilot.source.youtube.YouTubeDownloadService
 import kotlinx.coroutines.launch
 
@@ -18,6 +20,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = WallpaperPreferences(app)
     private val youtube = YouTubeDownloadService(app)
+    private val recommendedFetcher = RecommendedVideosFetcher(app)
 
     var source by mutableStateOf<WallpaperSource?>(prefs.source)
         private set
@@ -41,6 +44,8 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     var shuffleEnabled by mutableStateOf(prefs.shuffleEnabled)
         private set
     var favoriteIds by mutableStateOf<Set<String>>(prefs.allFavorites().toSet())
+        private set
+    var recommendedVideos by mutableStateOf<List<RecommendedVideo>>(emptyList())
         private set
     var syncThemedIcons by mutableStateOf(prefs.syncThemedIcons)
         private set
@@ -85,6 +90,9 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     init {
         prefs.registerChangeListener(prefsListener)
         refreshActiveSceneParams()
+        viewModelScope.launch {
+            recommendedVideos = recommendedFetcher.fetch()
+        }
     }
 
     /**

@@ -221,6 +221,35 @@ private fun AnimationsPane(
         }
         Spacer(Modifier.height(10.dp))
 
+        if (viewModel.recommendedVideos.isNotEmpty()) {
+            Text(
+                text = "Recommended",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                val recState = androidx.compose.foundation.lazy.rememberLazyListState()
+                LazyRow(
+                    state = recState,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(viewModel.recommendedVideos, key = { it.videoId }) { video ->
+                        com.arcusfoundry.labs.pixelpilot.ui.components.RecommendedVideoCard(
+                            video = video,
+                            onDownload = { viewModel.startBackgroundDownload(video.youtubeUrl) }
+                        )
+                    }
+                }
+                com.arcusfoundry.labs.pixelpilot.ui.components.ScrollHintArrow(
+                    state = recState,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
