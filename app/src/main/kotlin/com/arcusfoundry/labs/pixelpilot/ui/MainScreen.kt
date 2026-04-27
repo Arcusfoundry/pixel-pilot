@@ -84,13 +84,6 @@ fun MainScreen(
             // App window is translucent via Theme.PixelPilot (windowShowWallpaper=true),
             // so the actual live system wallpaper shows through the UI. No duplicate
             // renderer needed.
-            ShuffleButton(
-                enabled = viewModel.shuffleEnabled,
-                onToggle = { viewModel.toggleShuffle() },
-                modifier = Modifier
-                    .align(androidx.compose.ui.Alignment.TopEnd)
-                    .padding(top = 14.dp, end = 14.dp)
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -138,6 +131,16 @@ fun MainScreen(
                 modifier = Modifier
                     .align(androidx.compose.ui.Alignment.BottomStart)
                     .padding(start = 12.dp, bottom = 12.dp)
+            )
+            // Drawn last so it sits on top of the content Column. Padding from
+            // top/end matches the inner content padding so it doesn't hug the
+            // status bar area.
+            ShuffleButton(
+                enabled = viewModel.shuffleEnabled,
+                onToggle = { viewModel.toggleShuffle() },
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment.TopEnd)
+                    .padding(top = 18.dp, end = 18.dp)
             )
         }
     }
@@ -209,7 +212,9 @@ private fun AnimationsPane(
                     VideoCard(
                         source = src,
                         selected = selected,
+                        isFavorite = viewModel.isFavorite(src),
                         onClick = { applySource(src) },
+                        onToggleFavorite = { viewModel.toggleFavorite(src) },
                         onOpenSettings = { onOpenVideoSettings(src) }
                     )
                 }
@@ -402,14 +407,17 @@ private fun ShuffleButton(
     else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
-            .size(40.dp)
+            .size(44.dp)
             .clip(CircleShape)
             .background(bg)
             .clickable(onClick = onToggle),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
+        // Two crossed arrows, ASCII-stable across fonts. "↑↓" reads as
+        // shuffle/randomize; the unicode "⤭" used previously didn't render
+        // on default Pixel/GrapheneOS fonts so the button looked empty.
         Text(
-            text = "⤭",
+            text = "⇄",
             style = MaterialTheme.typography.titleLarge,
             color = fg,
             fontWeight = FontWeight.Bold

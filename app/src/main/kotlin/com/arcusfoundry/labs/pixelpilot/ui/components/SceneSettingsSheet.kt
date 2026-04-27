@@ -78,9 +78,11 @@ fun SceneSettingsSheet(
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (animation != null) {
-                    val isFav = viewModel.isFavorite(animation.id)
+                    val source = com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
+                        .Procedural(animation.id)
+                    val isFav = viewModel.isFavorite(source)
                     androidx.compose.material3.IconButton(
-                        onClick = { viewModel.toggleFavorite(animation.id) }
+                        onClick = { viewModel.toggleFavorite(source) }
                     ) {
                         Text(
                             text = if (isFav) "★" else "☆",

@@ -32,7 +32,9 @@ import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
 fun VideoCard(
     source: WallpaperSource,
     selected: Boolean,
+    isFavorite: Boolean,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onOpenSettings: () -> Unit = {}
 ) {
     val path: String = when (source) {
@@ -83,10 +85,9 @@ fun VideoCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = androidx.compose.ui.Alignment.Top
             ) {
-                Text(
-                    text = if (source is WallpaperSource.LocalFile) "Downloaded" else "Video",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.85f)
+                FavoriteStarBadge(
+                    favorited = isFavorite,
+                    onClick = onToggleFavorite
                 )
                 if (selected) VideoGearButton(onClick = onOpenSettings)
             }
@@ -98,6 +99,28 @@ fun VideoCard(
                 maxLines = 1
             )
         }
+    }
+}
+
+@Composable
+private fun FavoriteStarBadge(favorited: Boolean, onClick: () -> Unit) {
+    val bg = if (favorited) MaterialTheme.colorScheme.primary
+    else Color.Black.copy(alpha = 0.55f)
+    val fg = if (favorited) MaterialTheme.colorScheme.onPrimary
+    else Color.White.copy(alpha = 0.9f)
+    androidx.compose.foundation.layout.Box(
+        Modifier
+            .size(32.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .clickable { onClick() },
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = if (favorited) "★" else "☆",
+            style = MaterialTheme.typography.titleMedium,
+            color = fg
+        )
     }
 }
 

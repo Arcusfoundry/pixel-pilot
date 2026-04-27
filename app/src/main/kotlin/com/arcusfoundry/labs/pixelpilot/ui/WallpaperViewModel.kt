@@ -216,9 +216,11 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun updateSyncThemedIcons(v: Boolean) { prefs.syncThemedIcons = v }
 
-    fun isFavorite(animationId: String): Boolean = favoriteIds.contains(animationId)
-    fun toggleFavorite(animationId: String) {
-        prefs.setFavorite(animationId, !prefs.isFavorite(animationId))
+    fun isFavorite(source: WallpaperSource): Boolean =
+        favoriteIds.contains(source.serialize())
+    fun toggleFavorite(source: WallpaperSource) {
+        val key = source.serialize()
+        prefs.setFavorite(key, !prefs.isFavorite(key))
     }
     fun toggleShuffle() { prefs.shuffleEnabled = !prefs.shuffleEnabled }
 

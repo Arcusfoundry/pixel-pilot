@@ -130,12 +130,21 @@ class VideoWallpaperService : WallpaperService() {
             val now = System.currentTimeMillis()
             if (now - prefs.lastShuffleAt < SHUFFLE_THROTTLE_MS) return
             val favorites = prefs.allFavorites()
+                .mapNotNull { WallpaperSource.parse(it) }
+                .filter { isReachable(it) }
             if (favorites.isEmpty()) return
-            val current = (currentSource as? WallpaperSource.Procedural)?.animationId
-            val candidates = favorites.filter { it != current && AnimationRegistry.get(it) != null }
-            val pick = (candidates.takeIf { it.isNotEmpty() } ?: favorites).random()
+            val currentKey = currentSource?.serialize()
+            val pool = favorites.filter { it.serialize() != currentKey }
+            val pick = (pool.takeIf { it.isNotEmpty() } ?: favorites).random()
             prefs.lastShuffleAt = now
-            prefs.source = WallpaperSource.Procedural(pick)
+            prefs.source = pick
+        }
+
+        /** True if the favorite source can plausibly play right now. */
+        private fun isReachable(source: WallpaperSource): Boolean = when (source) {
+            is WallpaperSource.Procedural -> AnimationRegistry.get(source.animationId) != null
+            is WallpaperSource.LocalFile -> java.io.File(source.path).exists()
+            is WallpaperSource.Video -> true // SAF URI; trust until ExoPlayer says otherwise
         }
 
         override fun onSurfaceRedrawNeeded(holder: SurfaceHolder) {
