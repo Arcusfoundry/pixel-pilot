@@ -11,8 +11,8 @@ import android.view.SurfaceHolder
 import androidx.media3.common.util.UnstableApi
 import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
+import com.arcusfoundry.labs.pixelpilot.render.GlProceduralRenderer
 import com.arcusfoundry.labs.pixelpilot.render.GlVideoRenderer
-import com.arcusfoundry.labs.pixelpilot.render.ProceduralRenderer
 import com.arcusfoundry.labs.pixelpilot.render.WallpaperRenderer
 import com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
@@ -52,8 +52,7 @@ class VideoWallpaperService : WallpaperService() {
                     val activeId = (currentSource as? WallpaperSource.Procedural)?.animationId
                     if (activeId != null && prefs.isSceneKeyFor(activeId, key)) {
                         mainHandler.post {
-                            (renderer as? com.arcusfoundry.labs.pixelpilot.render.ProceduralRenderer)
-                                ?.reinitializeWithSceneConfig()
+                            (renderer as? GlProceduralRenderer)?.reinitializeWithSceneConfig()
                         }
                     }
                 }
@@ -126,43 +125,11 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         private fun reloadSource() {
-            val newSource = prefs.source ?: WallpaperSource.Procedural(AnimationRegistry.default.id)
-            val typeChanging = currentSource != null
-                && rendererType(currentSource!!) != rendererType(newSource)
-
+            // Both procedural and video renderers go through EGL window surfaces
+            // now, so source switches are always EGL→EGL handoffs. No producer
+            // type change, no need to force surface recreation.
             detachRenderer()
-
-            if (typeChanging) {
-                // Procedural uses Canvas (lockCanvas / unlockCanvasAndPost); video
-                // uses EGL (eglCreateWindowSurface). The wallpaper Surface's
-                // BufferQueue retains the prior producer connection until the
-                // surface is destroyed. Switching producer types in place fails
-                // with EGL_BAD_ALLOC. Toggle the surface format to force the
-                // system to destroy + recreate the surface; onSurfaceChanged
-                // fires after recreate and re-attaches with the new source.
-                Log.d(TAG, "renderer type change → forcing surface recreate")
-                val sh = surfaceHolder
-                if (sh != null) {
-                    sh.setFormat(android.graphics.PixelFormat.OPAQUE)
-                    sh.setFormat(android.graphics.PixelFormat.RGBA_8888)
-                }
-                // Safety net: if the format toggle didn't trigger a recreate
-                // on this Android build, attach after a short settle delay so
-                // we don't leave the wallpaper blank.
-                mainHandler.postDelayed({
-                    if (renderer == null) {
-                        Log.d(TAG, "surface recreate didn't fire, attaching directly")
-                        attachRenderer()
-                    }
-                }, 350)
-            } else {
-                attachRenderer()
-            }
-        }
-
-        private fun rendererType(source: WallpaperSource): String = when (source) {
-            is WallpaperSource.Procedural -> "procedural"
-            is WallpaperSource.Video, is WallpaperSource.LocalFile -> "video"
+            attachRenderer()
         }
 
         private fun attachRenderer() {
@@ -182,7 +149,7 @@ class VideoWallpaperService : WallpaperService() {
             val newRenderer: WallpaperRenderer = when (source) {
                 is WallpaperSource.Procedural -> {
                     val animation = AnimationRegistry.get(source.animationId) ?: AnimationRegistry.default
-                    ProceduralRenderer(animation, prefs)
+                    GlProceduralRenderer(animation, prefs)
                 }
                 is WallpaperSource.Video -> GlVideoRenderer(this@VideoWallpaperService, source.uri)
                 is WallpaperSource.LocalFile -> GlVideoRenderer(this@VideoWallpaperService, source.path)
