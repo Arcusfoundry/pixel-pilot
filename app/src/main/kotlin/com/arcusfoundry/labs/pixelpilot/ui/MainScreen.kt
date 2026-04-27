@@ -86,7 +86,7 @@ fun MainScreen(
             // renderer needed.
             ShuffleButton(
                 enabled = viewModel.shuffleEnabled,
-                onToggle = { viewModel.setShuffleEnabled(!viewModel.shuffleEnabled) },
+                onToggle = { viewModel.toggleShuffle() },
                 modifier = Modifier
                     .align(androidx.compose.ui.Alignment.TopEnd)
                     .padding(top = 14.dp, end = 14.dp)

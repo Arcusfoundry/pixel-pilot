@@ -212,7 +212,7 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleFavorite(animationId: String) {
         prefs.setFavorite(animationId, !prefs.isFavorite(animationId))
     }
-    fun setShuffleEnabled(value: Boolean) { prefs.shuffleEnabled = value }
+    fun toggleShuffle() { prefs.shuffleEnabled = !prefs.shuffleEnabled }
 
     /** Current scene-scoped values for an animation, folded with each spec's default. */
     fun sceneValues(animation: com.arcusfoundry.labs.pixelpilot.render.Animation): Map<String, Any?> {
