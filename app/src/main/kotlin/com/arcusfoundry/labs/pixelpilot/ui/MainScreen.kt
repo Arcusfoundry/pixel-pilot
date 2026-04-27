@@ -57,7 +57,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(
     viewModel: WallpaperViewModel,
-    onPickVideo: () -> Unit
+    onPickVideo: () -> Unit,
+    onActivateWallpaper: () -> Unit
 ) {
     val context = LocalContext.current
     val scroll = rememberScrollState()
@@ -99,6 +100,7 @@ fun MainScreen(
                         currentSource = currentSource,
                         onAddVideo = onPickVideo,
                         onAddYouTube = { showYouTube = true },
+                        onActivateWallpaper = onActivateWallpaper,
                         onOpenAnimationSettings = { animation ->
                             // If card isn't active, select it first then open sheet.
                             val cur = (currentSource as? WallpaperSource.Procedural)?.animationId
@@ -153,10 +155,21 @@ private fun AnimationsPane(
     currentSource: WallpaperSource?,
     onAddVideo: () -> Unit,
     onAddYouTube: () -> Unit,
+    onActivateWallpaper: () -> Unit,
     onOpenAnimationSettings: (com.arcusfoundry.labs.pixelpilot.render.Animation) -> Unit,
     onOpenVideoSettings: (WallpaperSource) -> Unit
 ) {
     val userVideos = viewModel.recents.mapNotNull { WallpaperSource.parse(it) }
+
+    // Tile click writes prefs.source. If Pixel Pilot isn't currently the
+    // active live wallpaper, no engine is listening for that pref change —
+    // the click would silently no-op. So when not active, also hand off to
+    // the system wallpaper picker so the user can confirm Pixel Pilot
+    // (preserves their pref so the picker preview shows the chosen scene).
+    val applySource: (WallpaperSource) -> Unit = { src ->
+        viewModel.selectSource(src)
+        if (!viewModel.isPixelPilotActiveWallpaper) onActivateWallpaper()
+    }
 
     Column {
         Text(
@@ -186,7 +199,7 @@ private fun AnimationsPane(
                     VideoCard(
                         source = src,
                         selected = selected,
-                        onClick = { viewModel.selectSource(src) },
+                        onClick = { applySource(src) },
                         onOpenSettings = { onOpenVideoSettings(src) }
                     )
                 }
@@ -201,7 +214,7 @@ private fun AnimationsPane(
         AnimationPicker(
             animationsByCategory = AnimationRegistry.byCategory,
             selectedId = (currentSource as? WallpaperSource.Procedural)?.animationId,
-            onSelect = { viewModel.selectSource(WallpaperSource.Procedural(it.id)) },
+            onSelect = { applySource(WallpaperSource.Procedural(it.id)) },
             onOpenSettings = onOpenAnimationSettings
         )
     }
