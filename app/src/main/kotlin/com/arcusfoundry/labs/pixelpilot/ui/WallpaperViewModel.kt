@@ -89,6 +89,15 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         prefs.registerChangeListener(prefsListener)
+        // First-launch seed: if no source has ever been chosen, default to
+        // the Graph Paper procedural scene. The nag overlay then prompts the
+        // user to activate Pixel Pilot as the live wallpaper, with Graph Paper
+        // already showing in the system picker preview. After that single
+        // setup, subsequent app opens see the user's last-chosen source.
+        if (prefs.source == null) {
+            prefs.source = WallpaperSource.Procedural("graph-paper")
+            source = prefs.source
+        }
         refreshActiveSceneParams()
         viewModelScope.launch {
             recommendedVideos = recommendedFetcher.fetch()

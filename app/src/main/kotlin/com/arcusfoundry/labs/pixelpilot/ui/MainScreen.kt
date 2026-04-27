@@ -101,11 +101,6 @@ fun MainScreen(
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp, bottom = 16.dp)
             ) {
-                if (!viewModel.isPixelPilotActiveWallpaper) {
-                    SetAsWallpaperButton(onClick = onActivateWallpaper)
-                    Spacer(Modifier.height(12.dp))
-                }
-
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -158,6 +153,13 @@ fun MainScreen(
                     .align(androidx.compose.ui.Alignment.BottomEnd)
                     .padding(bottom = 18.dp, end = 18.dp)
             )
+            // Full-screen nag overlay. Shown whenever Pixel Pilot is not the
+            // active live wallpaper. Replaces tile-tap dialogs and the
+            // smaller top button — single, prominent activation prompt that
+            // dismisses on its own once the user sets the wallpaper.
+            if (!viewModel.isPixelPilotActiveWallpaper) {
+                ActivationNag(onActivate = onActivateWallpaper)
+            }
         }
     }
 
@@ -461,20 +463,54 @@ private fun computePointerOffsetDp(
 }
 
 @Composable
-private fun SetAsWallpaperButton(onClick: () -> Unit) {
-    androidx.compose.material3.Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        )
+private fun ActivationNag(onActivate: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.78f))
+            // Consume taps so the user can't dismiss without activating —
+            // this is the nag, after all.
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) { /* swallow */ },
+        contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(
-            text = "Set as wallpaper",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Welcome to Pixel Pilot",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Set Pixel Pilot as your live wallpaper to begin. " +
+                    "For the best experience, choose Both — home and lock screen.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.85f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(20.dp))
+            androidx.compose.material3.Button(
+                onClick = onActivate,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Set as wallpaper",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }
 
