@@ -97,6 +97,10 @@ class WallpaperPreferences(context: Context) {
         recents = (recents + serialized).takeLast(5)
     }
 
+    fun removeRecent(serialized: String) {
+        recents = recents.filter { it != serialized }
+    }
+
     /**
      * Reads the user's scene-scoped values for an animation (keyed under
      * "scene:<animationId>:<settingKey>"), folding in each spec's default.

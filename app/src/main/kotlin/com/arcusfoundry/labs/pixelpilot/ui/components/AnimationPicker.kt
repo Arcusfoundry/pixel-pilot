@@ -51,15 +51,25 @@ fun AnimationPicker(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
             )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(animations) { animation ->
-                    AnimationCard(
-                        animation = animation,
-                        selected = selectedId == animation.id,
-                        onClick = { onSelect(animation) },
-                        onOpenSettings = { onOpenSettings(animation) }
-                    )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                val rowState = androidx.compose.foundation.lazy.rememberLazyListState()
+                LazyRow(
+                    state = rowState,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(animations) { animation ->
+                        AnimationCard(
+                            animation = animation,
+                            selected = selectedId == animation.id,
+                            onClick = { onSelect(animation) },
+                            onOpenSettings = { onOpenSettings(animation) }
+                        )
+                    }
                 }
+                ScrollHintArrow(
+                    state = rowState,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
+                )
             }
             Spacer(Modifier.height(10.dp))
         }

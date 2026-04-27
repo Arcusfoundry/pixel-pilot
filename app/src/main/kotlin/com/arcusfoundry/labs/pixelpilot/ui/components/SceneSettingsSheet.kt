@@ -134,6 +134,41 @@ fun SceneSettingsSheet(
                 onRainbowCycleChange = viewModel::updateRainbowCycle,
                 onStrengthChange = viewModel::updateTintStrength
             )
+
+            // Video-only: remove from "Your Videos" + delete underlying file
+            // for YouTube downloads. Sheet open with animation == null means
+            // a video tile's settings are showing.
+            val source = viewModel.source
+            val isVideoSheet = animation == null && (
+                source is com.arcusfoundry.labs.pixelpilot.source.WallpaperSource.Video ||
+                source is com.arcusfoundry.labs.pixelpilot.source.WallpaperSource.LocalFile
+            )
+            if (isVideoSheet && source != null) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = {
+                        viewModel.removeVideoSource(source)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                    )
+                ) {
+                    Text(
+                        text = if (source is com.arcusfoundry.labs.pixelpilot.source.WallpaperSource.LocalFile)
+                            "Delete download"
+                        else "Remove from list",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
     }
 }

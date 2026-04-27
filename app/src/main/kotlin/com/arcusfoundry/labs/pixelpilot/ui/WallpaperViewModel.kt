@@ -82,6 +82,37 @@ class WallpaperViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Remove a video tile from the user's "Your Videos" row. For YouTube
+     * downloads (LocalFile), also deletes the underlying MP4 from filesDir.
+     * For SAF picks (Video), releases our persistable URI permission so the
+     * user's content provider doesn't keep granting us access. If the removed
+     * source was the active wallpaper, fall back to the default procedural
+     * scene so the wallpaper engine has something to render.
+     */
+    fun removeVideoSource(source: WallpaperSource) {
+        prefs.removeRecent(source.serialize())
+        when (source) {
+            is WallpaperSource.LocalFile -> {
+                runCatching { java.io.File(source.path).delete() }
+            }
+            is WallpaperSource.Video -> {
+                runCatching {
+                    getApplication<Application>().contentResolver
+                        .releasePersistableUriPermission(
+                            android.net.Uri.parse(source.uri),
+                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                }
+            }
+            else -> {}
+        }
+        if (prefs.source?.serialize() == source.serialize()) {
+            val defaultId = com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry.default.id
+            prefs.source = WallpaperSource.Procedural(defaultId)
+        }
+    }
+
+    /**
      * Builds a RenderParams snapshot from the current in-memory state. Safe to
      * call from the UI thread on every recomposition; no prefs IO.
      */

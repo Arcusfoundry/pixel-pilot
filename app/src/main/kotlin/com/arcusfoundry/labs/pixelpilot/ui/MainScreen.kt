@@ -170,22 +170,32 @@ private fun AnimationsPane(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            item {
-                AddCard(symbol = "+", label = "Add video", onClick = onAddVideo)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            val videosState = androidx.compose.foundation.lazy.rememberLazyListState()
+            LazyRow(
+                state = videosState,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    AddCard(symbol = "+", label = "Add video", onClick = onAddVideo)
+                }
+                item {
+                    AddCard(symbol = "▶", label = "+ YouTube", onClick = onAddYouTube)
+                }
+                items(userVideos) { src ->
+                    val selected = currentSource?.serialize() == src.serialize()
+                    VideoCard(
+                        source = src,
+                        selected = selected,
+                        onClick = { viewModel.selectSource(src) },
+                        onOpenSettings = { onOpenVideoSettings(src) }
+                    )
+                }
             }
-            item {
-                AddCard(symbol = "▶", label = "+ YouTube", onClick = onAddYouTube)
-            }
-            items(userVideos) { src ->
-                val selected = currentSource?.serialize() == src.serialize()
-                VideoCard(
-                    source = src,
-                    selected = selected,
-                    onClick = { viewModel.selectSource(src) },
-                    onOpenSettings = { onOpenVideoSettings(src) }
-                )
-            }
+            com.arcusfoundry.labs.pixelpilot.ui.components.ScrollHintArrow(
+                state = videosState,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
+            )
         }
         Spacer(Modifier.height(10.dp))
 
