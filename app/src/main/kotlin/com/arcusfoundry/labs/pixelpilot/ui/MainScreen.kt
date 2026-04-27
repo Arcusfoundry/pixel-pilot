@@ -132,15 +132,15 @@ fun MainScreen(
                     .align(androidx.compose.ui.Alignment.BottomStart)
                     .padding(start = 12.dp, bottom = 12.dp)
             )
-            // Drawn last so it sits on top of the content Column. Padding from
-            // top/end matches the inner content padding so it doesn't hug the
-            // status bar area.
+            // Bottom-right placement avoids overlap with Pixel's centered
+            // top camera cutout. Drawn last so it sits on top of the content
+            // Column.
             ShuffleButton(
                 enabled = viewModel.shuffleEnabled,
                 onToggle = { viewModel.toggleShuffle() },
                 modifier = Modifier
-                    .align(androidx.compose.ui.Alignment.TopEnd)
-                    .padding(top = 18.dp, end = 18.dp)
+                    .align(androidx.compose.ui.Alignment.BottomEnd)
+                    .padding(bottom = 18.dp, end = 18.dp)
             )
         }
     }
