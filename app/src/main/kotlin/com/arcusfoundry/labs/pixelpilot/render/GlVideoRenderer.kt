@@ -265,10 +265,11 @@ class GlVideoRenderer(
 
     private fun initVideoPipeline() {
         val st = SurfaceTexture(oesTextureId).apply {
-            setDefaultBufferSize(
-                if (surfaceWidth > 0) surfaceWidth else 1280,
-                if (surfaceHeight > 0) surfaceHeight else 720
-            )
+            // Don't pre-size to surface dims — MediaCodec sets the buffer size
+            // to the video's natural resolution when it configures output. Pre-
+            // sizing here would cap the buffer at surface dims and letterbox
+            // the video inside the texture, which then makes our crop matrix
+            // operate on already-letterboxed pixels (the "fit not fill" bug).
             setOnFrameAvailableListener({
                 handler?.post { drawFrame() }
             }, handler)
@@ -339,12 +340,10 @@ class GlVideoRenderer(
     }
 
     /**
-     * Builds a 4x4 matrix that transforms 0..1 tex coords into the right
-     * crop/fit region. Operates in "texture space": coords are translated
-     * and scaled around the 0.5 center point.
-     *
-     * params.scale >= 1 : center-crop (matches SCALE_TO_FIT_WITH_CROPPING)
-     * params.scale <  1 : fit (matches SCALE_TO_FIT, letterboxes)
+     * Builds a 4x4 matrix that transforms 0..1 tex coords into a center-cropped
+     * region. Video always fills the surface — no fit/letterbox mode. The
+     * RenderParams.scale slider only meaningfully applies to procedural
+     * animations (where it tunes element sizes).
      */
     private fun computeCropMatrix(out: FloatArray) {
         Matrix.setIdentityM(out, 0)
@@ -354,27 +353,16 @@ class GlVideoRenderer(
 
         val surfaceAspect = surfaceWidth.toFloat() / surfaceHeight.toFloat()
         val videoAspect = vw.toFloat() / vh.toFloat()
-        val crop = params.scale >= 1f
 
         var scaleX = 1f
         var scaleY = 1f
-        if (crop) {
-            // Center-crop: scale UVs inward so more of the frame fills each axis.
-            if (videoAspect > surfaceAspect) {
-                // Video wider than surface → crop left/right (shrink U range).
-                scaleX = surfaceAspect / videoAspect
-            } else {
-                // Video taller than surface → crop top/bottom (shrink V range).
-                scaleY = videoAspect / surfaceAspect
-            }
+        // Always center-crop so video fills the wallpaper surface.
+        if (videoAspect > surfaceAspect) {
+            // Video wider than surface → crop left/right (shrink U range).
+            scaleX = surfaceAspect / videoAspect
         } else {
-            // Fit: scale UVs outward so entire frame fits (extra area rendered as
-            // transparent black since we clear to black).
-            if (videoAspect > surfaceAspect) {
-                scaleY = videoAspect / surfaceAspect
-            } else {
-                scaleX = surfaceAspect / videoAspect
-            }
+            // Video taller than surface → crop top/bottom (shrink V range).
+            scaleY = videoAspect / surfaceAspect
         }
 
         // Build: translate to origin, scale, translate back. Matrix column-major.
