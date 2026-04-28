@@ -48,7 +48,15 @@ class VideoWallpaperService : WallpaperService() {
                 key == WallpaperPreferences.KEY_SOURCE ->
                     mainHandler.post { reloadSource() }
                 key == WallpaperPreferences.KEY_SYSTEM_SYNC_COLOR ->
-                    mainHandler.post { notifyColorsChanged() }
+                    mainHandler.post {
+                        // notifyColorsChanged() was added in API 27 (O_MR1).
+                        // On Android 8.0 the system never asks for wallpaper
+                        // colors anyway, so skipping is harmless.
+                        if (android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.O_MR1) {
+                            notifyColorsChanged()
+                        }
+                    }
                 key.startsWith(WallpaperPreferences.SCENE_KEY_PREFIX) -> {
                     val activeId = (currentSource as? WallpaperSource.Procedural)?.animationId
                     if (activeId != null && prefs.isSceneKeyFor(activeId, key)) {
@@ -71,6 +79,14 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         override fun onComputeColors(): WallpaperColors? {
+            // WallpaperColors is API 27. The system itself only calls
+            // onComputeColors on API 27+, so this guard is defensive — but it
+            // also keeps the WallpaperColors class reference cold-loaded only
+            // when we know the runtime can resolve it.
+            if (android.os.Build.VERSION.SDK_INT <
+                android.os.Build.VERSION_CODES.O_MR1) {
+                return null
+            }
             // Always return a deterministic palette. If the user picked an
             // explicit sync color, use it. Otherwise fall back to a neutral
             // dark color rather than letting the system auto-extract from the

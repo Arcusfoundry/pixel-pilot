@@ -6,7 +6,7 @@ Pixel Pilot is an Android customization app for GrapheneOS users who want contro
 
 ## Requirements
 
-- Android 13 (API 33) or newer
+- Android 8.0 (API 26) or newer
 - Works on GrapheneOS. Works on stock Android.
 
 ## Install

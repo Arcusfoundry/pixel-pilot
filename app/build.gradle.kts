@@ -10,7 +10,11 @@ android {
 
     defaultConfig {
         applicationId = "com.arcusfoundry.labs.pixelpilot"
-        minSdk = 33
+        // Android 8.0 (Oreo). Wallpaper rendering APIs we use go back to
+        // ancient versions; the only API >= 26 we need is the WallpaperColors
+        // trio (notifyColorsChanged + onComputeColors + WallpaperColors
+        // constructor) which is API 27 and gated at runtime.
+        minSdk = 26
         targetSdk = 36
         // Derived from git tag in the release workflow. For local/debug builds
         // these default values are used, but they're never shipped to users.

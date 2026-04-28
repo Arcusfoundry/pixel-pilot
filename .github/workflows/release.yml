@@ -100,7 +100,7 @@ jobs:
             Install via [Obtainium](https://obtainium.imranr.dev/) by pointing at `Arcusfoundry/pixel-pilot`, or download the APK below and install directly.
 
             ### Requirements
-            - Android 13 (API 33) or newer
+            - Android 8.0 (API 26) or newer
             - Works on GrapheneOS and stock Android
 
             _Built because nothing better existed. Provided as-is._
