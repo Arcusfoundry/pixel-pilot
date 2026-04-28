@@ -13,6 +13,7 @@ import com.arcusfoundry.labs.pixelpilot.prefs.WallpaperPreferences
 import com.arcusfoundry.labs.pixelpilot.render.AssetLoader
 import com.arcusfoundry.labs.pixelpilot.render.GlProceduralRenderer
 import com.arcusfoundry.labs.pixelpilot.render.GlVideoRenderer
+import com.arcusfoundry.labs.pixelpilot.render.InstructionRenderer
 import com.arcusfoundry.labs.pixelpilot.render.WallpaperRenderer
 import com.arcusfoundry.labs.pixelpilot.render.animations.AnimationRegistry
 import com.arcusfoundry.labs.pixelpilot.source.WallpaperSource
@@ -193,7 +194,12 @@ class VideoWallpaperService : WallpaperService() {
             val source = prefs.source ?: WallpaperSource.Procedural(AnimationRegistry.default.id)
             currentSource = source
 
-            val newRenderer: WallpaperRenderer = when (source) {
+            // System wallpaper picker previews this engine via isPreview=true.
+            // Render a static "Set as wallpaper" instruction in that mode so the
+            // user sees what to do, not a teaser of the eventual scene.
+            val newRenderer: WallpaperRenderer = if (isPreview) {
+                InstructionRenderer(this@VideoWallpaperService)
+            } else when (source) {
                 is WallpaperSource.Procedural -> {
                     val animation = AnimationRegistry.get(source.animationId) ?: AnimationRegistry.default
                     GlProceduralRenderer(animation, prefs)

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Pixel Pilot</string>
-    <string name="wallpaper_label">Pixel Pilot</string>
+    <!-- Empty so the system wallpaper picker's title bar above the
+         preview is blank — the embedded logo image already brands it. -->
+    <string name="wallpaper_label" translatable="false"> </string>
     <string name="wallpaper_description">Customization without compromise.</string>
 </resources>
