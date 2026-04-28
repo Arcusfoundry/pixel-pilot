@@ -71,7 +71,14 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         override fun onComputeColors(): WallpaperColors? {
-            val c = prefs.systemSyncColor ?: return super.onComputeColors()
+            // Always return a deterministic palette. If the user picked an
+            // explicit sync color, use it. Otherwise fall back to a neutral
+            // dark color rather than letting the system auto-extract from the
+            // currently-rendering surface — auto-extraction during the picker
+            // preview phase would lock in the InstructionRenderer's green
+            // logo as the system theme color, tinting the lock screen / PIN
+            // surface green even after the actual scene takes over.
+            val c = prefs.systemSyncColor ?: NEUTRAL_DARK
             return WallpaperColors(Color.valueOf(c), null, null)
         }
 
@@ -216,6 +223,7 @@ class VideoWallpaperService : WallpaperService() {
 
         private val TAG = "PixelPilotEngine"
         private val SHUFFLE_THROTTLE_MS = 5_000L
+        private val NEUTRAL_DARK = Color.rgb(20, 20, 24)
 
         private fun detachRenderer() {
             renderer?.release()
