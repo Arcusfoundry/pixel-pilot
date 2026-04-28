@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -66,7 +68,17 @@ class InstructionRenderer(private val context: Context) : WallpaperRenderer {
             if (logo != null) {
                 val src = Rect(0, 0, logo.width, logo.height)
                 val dst = RectF(logoLeft, logoTop, logoLeft + logoTarget, logoTop + logoTarget)
-                val paint = Paint().apply { isFilterBitmap = true; isAntiAlias = true }
+                // Grayscale + slight darken so the logo doesn't leak its
+                // saturated green into the system's lock-screen color
+                // sampling. The wallpaper's dominant pixel color drives PIN
+                // screen tint, AOD accents, etc., so we keep the rendered
+                // surface chromatically neutral during preview.
+                val matrix = ColorMatrix().apply { setSaturation(0f) }
+                val paint = Paint().apply {
+                    isFilterBitmap = true
+                    isAntiAlias = true
+                    colorFilter = ColorMatrixColorFilter(matrix)
+                }
                 canvas.drawBitmap(logo, src, dst, paint)
             }
 
